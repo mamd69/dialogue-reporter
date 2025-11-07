@@ -1,0 +1,15 @@
+{
+  "outputDirectory": "./dialogue-reports",
+  "filenamePattern": "conversation-{timestamp}.md",
+  "formatting": {
+    "syntaxHighlighting": false,
+    "includeMetadata": false,
+    "includeTimestamps": false,
+    "includeToolCalls": false
+  },
+  "performance": {
+    "maxBufferSize": 50,
+    "flushInterval": 10000,
+    "asyncWrites": true
+  }
+}

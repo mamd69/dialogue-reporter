@@ -1,0 +1,48 @@
+{
+  "$schema": "https://dialogue-reporter.dev/schema/config.json",
+
+  "_comment_outputDirectory": "Directory where conversation markdown files will be saved (relative or absolute path)",
+  "outputDirectory": "./dialogue-reports",
+
+  "_comment_filenamePattern": "Filename pattern. Available variables: {timestamp}, {date}, {time}, {session-id}",
+  "filenamePattern": "conversation-{timestamp}.md",
+
+  "formatting": {
+    "_comment_syntaxHighlighting": "Enable syntax highlighting in code blocks",
+    "syntaxHighlighting": true,
+
+    "_comment_includeMetadata": "Include conversation metadata (model, session ID, timestamps)",
+    "includeMetadata": true,
+
+    "_comment_includeTimestamps": "Add timestamps to each message",
+    "includeTimestamps": true,
+
+    "_comment_includeToolCalls": "Include tool calls and results in output",
+    "includeToolCalls": true,
+
+    "_comment_customTemplate": "Path to custom markdown template (optional)",
+    "customTemplate": null
+  },
+
+  "performance": {
+    "_comment_maxBufferSize": "Maximum number of messages to buffer in memory before flushing",
+    "maxBufferSize": 100,
+
+    "_comment_flushInterval": "Auto-flush interval in milliseconds",
+    "flushInterval": 5000,
+
+    "_comment_asyncWrites": "Use async non-blocking file writes (recommended: true)",
+    "asyncWrites": true
+  },
+
+  "_comment_customFormatter": "Path to custom formatter JavaScript file (optional)",
+  "customFormatter": null,
+
+  "_advanced_options": {
+    "_comment": "Advanced options for power users",
+    "maxFileSize": 10485760,
+    "compressionEnabled": false,
+    "backupEnabled": false,
+    "logLevel": "info"
+  }
+}

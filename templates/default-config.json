@@ -1,0 +1,16 @@
+{
+  "$schema": "https://dialogue-reporter.dev/schema/config.json",
+  "outputDirectory": "./dialogue-reports",
+  "filenamePattern": "conversation-{timestamp}.md",
+  "formatting": {
+    "syntaxHighlighting": true,
+    "includeMetadata": true,
+    "includeTimestamps": true,
+    "includeToolCalls": true
+  },
+  "performance": {
+    "maxBufferSize": 100,
+    "flushInterval": 5000,
+    "asyncWrites": true
+  }
+}
