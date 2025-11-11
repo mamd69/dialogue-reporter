@@ -277,3 +277,45 @@ export class DialogueReporterMCPServer implements MCPServer {
  * Singleton instance
  */
 export const mcpServer = new DialogueReporterMCPServer();
+
+/**
+ * Start MCP server if running as main module
+ */
+if (require.main === module) {
+  const readline = require('readline');
+
+  // Start server with config from environment
+  const configPath = process.env.DIALOGUE_REPORTER_CONFIG || '.dialogue-reporter.json';
+  mcpServer.start({ configPath }).catch((error) => {
+    console.error('Failed to start MCP server:', error);
+    process.exit(1);
+  });
+
+  // Handle stdio for MCP protocol
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+    terminal: false,
+  });
+
+  rl.on('line', async (line: string) => {
+    try {
+      const request = JSON.parse(line);
+      const response = await mcpServer.handleRequest(request);
+      console.log(JSON.stringify(response));
+    } catch (error) {
+      console.error('Error handling request:', error);
+    }
+  });
+
+  // Handle shutdown
+  process.on('SIGTERM', async () => {
+    await mcpServer.stop();
+    process.exit(0);
+  });
+
+  process.on('SIGINT', async () => {
+    await mcpServer.stop();
+    process.exit(0);
+  });
+}

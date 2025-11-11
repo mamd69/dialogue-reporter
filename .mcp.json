@@ -1,5 +1,15 @@
 {
   "mcpServers": {
+    "dialogue-reporter": {
+      "command": "node",
+      "args": [
+        "/home/codespace/nvm/current/lib/node_modules/dialogue-reporter/dist/mcp/server.js"
+      ],
+      "type": "stdio",
+      "env": {
+        "DIALOGUE_REPORTER_CONFIG": "/workspaces/dialogue-reporter/.dialogue-reporter.json"
+      }
+    },
     "claude-flow@alpha": {
       "command": "npx",
       "args": [
