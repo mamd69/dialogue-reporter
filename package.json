@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "dialogue-reporter": "./dist/cli/index.js"
+    "dialogue-reporter": "dist/cli/index.js"
   },
   "scripts": {
     "build": "tsc",
@@ -36,7 +36,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/mamd69/dialogue-reporter.git"
+    "url": "git+https://github.com/mamd69/dialogue-reporter.git"
   },
   "bugs": {
     "url": "https://github.com/mamd69/dialogue-reporter/issues"

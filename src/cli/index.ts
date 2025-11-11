@@ -11,6 +11,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { DEFAULT_CONFIG } from '../config/defaults';
 
 const execAsync = promisify(exec);
 const program = new Command();
@@ -84,11 +85,11 @@ program
       if (verified) {
         console.log('✅ All checks passed\n');
         console.log('🎉 Dialogue Reporter installed successfully!\n');
-        console.log('Your conversations will be saved to: ./dialogue-reports/\n');
+        console.log(`Your conversations will be saved to: ${DEFAULT_CONFIG.outputDirectory}/\n`);
         console.log('Next steps:');
         console.log('  1. Restart Claude Code');
         console.log('  2. Start a conversation');
-        console.log('  3. Check ./dialogue-reports/ for your markdown file\n');
+        console.log(`  3. Check ${DEFAULT_CONFIG.outputDirectory}/ for your markdown files\n`);
       } else {
         console.log('⚠️  Installation complete but verification failed');
         console.log('Run "dialogue-reporter verify" to troubleshoot\n');
@@ -213,7 +214,7 @@ program
       console.log('✅ MCP registration removed\n');
 
       console.log('✅ Dialogue Reporter uninstalled\n');
-      console.log('Note: Your conversation markdown files in ./dialogue-reports/ were not deleted.\n');
+      console.log(`Note: Your conversation markdown files in ${DEFAULT_CONFIG.outputDirectory}/ were not deleted.\n`);
     } catch (error) {
       console.error('❌ Uninstall failed:', error);
       process.exit(1);
@@ -275,27 +276,11 @@ async function registerMCPServer(force: boolean = false): Promise<void> {
 
 async function createDefaultConfig(): Promise<void> {
   const configPath = '.dialogue-reporter.json';
-  const defaultConfig = {
-    outputDirectory: './dialogue-reports',
-    filenamePattern: 'conversation-{timestamp}.md',
-    formatting: {
-      syntaxHighlighting: true,
-      includeMetadata: true,
-      includeTimestamps: true,
-      includeToolCalls: true,
-    },
-    performance: {
-      maxBufferSize: 100,
-      flushInterval: 5000,
-      asyncWrites: true,
-    },
-  };
-
-  fs.writeFileSync(configPath, JSON.stringify(defaultConfig, null, 2));
+  fs.writeFileSync(configPath, JSON.stringify(DEFAULT_CONFIG, null, 2));
 }
 
 async function setupOutputDirectory(): Promise<void> {
-  const dir = './dialogue-reports';
+  const dir = DEFAULT_CONFIG.outputDirectory;
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
