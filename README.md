@@ -16,29 +16,27 @@ Dialogue Reporter captures every conversation you have with Claude Code and save
 - MCP protocol integration
 - Cross-session persistence
 
-## Quick Install (Fresh Claude Flow Project)
+## Quick Install
 
-### Step 1: Install Claude Flow (if not already installed)
-```bash
-claude mcp add claude-flow npx claude-flow@alpha mcp start
-```
-
-### Step 2: Install Dialogue Reporter
+### Option 1: Install with npm (Recommended)
 ```bash
 npm install -g dialogue-reporter
+dialogue-reporter install
 ```
 
-### Step 3: Setup (Automatic)
+### Option 2: Run with npx (No Install)
 ```bash
-dialogue-reporter install
+npx dialogue-reporter install
 ```
 
 That's it! The installation script will:
 - Detect your Claude Code project
 - Register the MCP server automatically
 - Create a default configuration
-- Setup the output directory (`./dialogue-reports/`)
+- Setup the output directory (`docs/claude-conversations/`)
 - Run a verification test
+
+**Note:** Works standalone or with Claude Flow. No other dependencies required!
 
 ### Step 4: Verify
 ```bash
@@ -72,29 +70,33 @@ The installer will integrate seamlessly with your existing setup.
 
 Once installed, Dialogue Reporter automatically:
 
-1. **Captures** - Hooks into Claude Code conversation events
-2. **Formats** - Converts to markdown with proper code blocks and syntax
-3. **Saves** - Writes to timestamped files in `./dialogue-reports/`
+1. **Captures** - Hooks into Claude Code conversation events (<2ms overhead)
+2. **Formats** - Converts to markdown with proper code blocks and syntax (<2ms)
+3. **Saves** - Writes to sequential files every 5 seconds (<1ms)
 
-All of this happens automatically in the background with minimal performance impact (<5ms per interaction).
+All of this happens automatically in the background with minimal performance impact (<5ms total).
 
 ## Output Format
 
-Conversations are saved as:
+Conversations are saved in `docs/claude-conversations/` as:
 ```
-./dialogue-reports/conversation-2025-11-07-14-30-45.md
+docs/claude-conversations/claude-convo-2025-11-11-1.md
+docs/claude-conversations/claude-convo-2025-11-11-2.md  (if multiple conversations same day)
+docs/claude-conversations/claude-convo-2025-11-12-1.md
 ```
 
 Example markdown output:
 ```markdown
-# Conversation - November 7, 2025 at 2:30 PM
+# Claude Code Conversation
 
+**Date:** Monday, November 11, 2025
+**Time:** 2:44:00 PM
 **Model:** claude-sonnet-4-5-20250929
-**Session ID:** abc123xyz
+**Session:** dialogue-reporter-implementation
 
 ---
 
-## User
+## Human
 Can you help me implement a binary search algorithm?
 
 ## Assistant
@@ -136,8 +138,8 @@ dialogue-reporter configure
 ### Configuration File (`.dialogue-reporter.json`)
 ```json
 {
-  "outputDirectory": "./dialogue-reports",
-  "filenamePattern": "conversation-{timestamp}.md",
+  "outputDirectory": "docs/claude-conversations",
+  "filenamePattern": "claude-convo-{date}-{number}.md",
   "formatting": {
     "includeMetadata": true,
     "syntaxHighlighting": true,
