@@ -1,7 +1,7 @@
 {
   "$schema": "https://dialogue-reporter.dev/schema/config.json",
-  "outputDirectory": "./dialogue-reports",
-  "filenamePattern": "conversation-{timestamp}.md",
+  "outputDirectory": "docs/claude-conversations",
+  "filenamePattern": "claude-convo-{date}-{number}.md",
   "formatting": {
     "syntaxHighlighting": true,
     "includeMetadata": true,

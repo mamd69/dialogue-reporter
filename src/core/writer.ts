@@ -18,7 +18,7 @@ import {
 } from '../types';
 
 export class MarkdownWriter implements Writer {
-  private defaultDirectory: string = './dialogue-reports';
+  private defaultDirectory: string = 'docs/claude-conversations';
 
   constructor(defaultDirectory?: string) {
     if (defaultDirectory) {
@@ -159,17 +159,30 @@ export class MarkdownWriter implements Writer {
   }
 
   /**
-   * Generate filename with timestamp
+   * Generate filename with sequential numbering: claude-convo-YYYY-MM-DD-#.md
    */
   private generateFilename(): string {
     const now = new Date();
-    const timestamp = now
-      .toISOString()
-      .replace(/:/g, '-')
-      .replace(/\..+/, '')
-      .replace('T', '-');
+    const date = now.toISOString().split('T')[0]; // YYYY-MM-DD
 
-    return `conversation-${timestamp}.md`;
+    // Find existing files for today to determine sequential number
+    let fileNumber = 1;
+    if (existsSync(this.defaultDirectory)) {
+      const fsSync = require('fs');
+      const files = fsSync.readdirSync(this.defaultDirectory);
+      const todayFiles = files.filter((f: string) => f.startsWith(`claude-convo-${date}-`) && f.endsWith('.md'));
+
+      if (todayFiles.length > 0) {
+        // Extract numbers and find the max
+        const numbers = todayFiles.map((f: string) => {
+          const match = f.match(/-(\d+)\.md$/);
+          return match ? parseInt(match[1], 10) : 0;
+        });
+        fileNumber = Math.max(...numbers) + 1;
+      }
+    }
+
+    return `claude-convo-${date}-${fileNumber}.md`;
   }
 
   async getStatus(): Promise<WriterStatus> {

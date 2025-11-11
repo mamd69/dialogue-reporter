@@ -2,10 +2,10 @@
   "$schema": "https://dialogue-reporter.dev/schema/config.json",
 
   "_comment_outputDirectory": "Directory where conversation markdown files will be saved (relative or absolute path)",
-  "outputDirectory": "./dialogue-reports",
+  "outputDirectory": "docs/claude-conversations",
 
-  "_comment_filenamePattern": "Filename pattern. Available variables: {timestamp}, {date}, {time}, {session-id}",
-  "filenamePattern": "conversation-{timestamp}.md",
+  "_comment_filenamePattern": "Filename pattern. Available variables: {date}, {number}, {timestamp}, {time}, {session-id}",
+  "filenamePattern": "claude-convo-{date}-{number}.md",
 
   "formatting": {
     "_comment_syntaxHighlighting": "Enable syntax highlighting in code blocks",

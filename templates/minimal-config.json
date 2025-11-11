@@ -1,6 +1,6 @@
 {
-  "outputDirectory": "./dialogue-reports",
-  "filenamePattern": "conversation-{timestamp}.md",
+  "outputDirectory": "docs/claude-conversations",
+  "filenamePattern": "claude-convo-{date}-{number}.md",
   "formatting": {
     "syntaxHighlighting": false,
     "includeMetadata": false,

@@ -7,8 +7,8 @@
 import { Config } from '../types';
 
 export const DEFAULT_CONFIG: Config = {
-  outputDirectory: './dialogue-reports',
-  filenamePattern: 'conversation-{timestamp}.md',
+  outputDirectory: 'docs/claude-conversations',
+  filenamePattern: 'claude-convo-{date}-{number}.md',
   formatting: {
     syntaxHighlighting: true,
     includeMetadata: true,
@@ -23,8 +23,8 @@ export const DEFAULT_CONFIG: Config = {
 };
 
 export const MINIMAL_CONFIG: Config = {
-  outputDirectory: './dialogue-reports',
-  filenamePattern: 'conversation-{timestamp}.md',
+  outputDirectory: 'docs/claude-conversations',
+  filenamePattern: 'claude-convo-{date}-{number}.md',
   formatting: {
     syntaxHighlighting: false,
     includeMetadata: false,

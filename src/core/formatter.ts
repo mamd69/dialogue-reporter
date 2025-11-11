@@ -72,6 +72,7 @@ export class MarkdownFormatter implements Formatter {
 
     if (opts.includeMetadata) {
       const date = data.timestamp.toLocaleDateString('en-US', {
+        weekday: 'long',
         year: 'numeric',
         month: 'long',
         day: 'numeric',
@@ -79,16 +80,18 @@ export class MarkdownFormatter implements Formatter {
       const time = data.timestamp.toLocaleTimeString('en-US', {
         hour: '2-digit',
         minute: '2-digit',
+        second: '2-digit',
       });
 
-      header += `# Conversation - ${date} at ${time}\n\n`;
+      header += `# Claude Code Conversation\n\n`;
+      header += `**Date:** ${date}\n`;
+      header += `**Time:** ${time}\n`;
 
       if (data.metadata.model) {
         header += `**Model:** ${data.metadata.model}\n`;
       }
 
-      header += `**Session ID:** ${data.metadata.sessionId}\n`;
-      header += `**Messages:** ${data.metadata.messageCount}\n\n`;
+      header += `**Session:** ${data.metadata.sessionId}\n\n`;
       header += '---\n\n';
     }
 
@@ -98,19 +101,9 @@ export class MarkdownFormatter implements Formatter {
   private formatMessage(message: Message, opts: FormatOptions): string {
     let formatted = '';
 
-    // Role header
-    const roleLabel = message.role.charAt(0).toUpperCase() + message.role.slice(1);
+    // Role header - Claude Code style (Human/Assistant)
+    const roleLabel = message.role === 'user' ? 'Human' : 'Assistant';
     formatted += `## ${roleLabel}\n\n`;
-
-    // Timestamp (if enabled)
-    if (opts.includeTimestamps) {
-      const timestamp = message.timestamp.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-      });
-      formatted += `*${timestamp}*\n\n`;
-    }
 
     // Message content
     formatted += this.formatContent(message.content, opts);
