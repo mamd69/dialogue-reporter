@@ -30,6 +30,7 @@ yarn-error.log*
 
 # Dialogue Reporter output (example)
 dialogue-reports/
+.dialogue-reporter.json
 
 # Temporary files
 *.tmp
@@ -41,6 +42,8 @@ dialogue-reports/
 memory/
 coordination/
 claude-flow
+.swarm/
+.mcprc.json
 
 # Hive Mind
 .hive-mind/
