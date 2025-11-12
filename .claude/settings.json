@@ -101,6 +101,20 @@
           {
             "type": "command",
             "command": "npx claude-flow@alpha hooks session-end --generate-summary true --persist-state true --export-metrics true"
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/SessionEnd.sh"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/SessionStart.sh"
           }
         ]
       }
