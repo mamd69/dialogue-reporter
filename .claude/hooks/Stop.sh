@@ -34,10 +34,9 @@ echo "TOOL_DISPLAY=$TOOL_DISPLAY (from config)" >> "$LOG_FILE"
 if [ -z "$CONV_FILE" ]; then
   echo "⚠️  No tracked conversation file. Looking for most recent file..." >> "$LOG_FILE"
   DIR="docs/claude-conversations"
-  DATE=$(date +%Y-%m-%d)
 
-  # Find the most recent conversation file for today
-  RECENT_FILE=$(ls -t "$DIR/claude-convo-$DATE-"*.md 2>/dev/null | head -1)
+  # Find the most recent conversation file (any date)
+  RECENT_FILE=$(ls -t "$DIR"/claude-convo-*.md 2>/dev/null | head -1)
 
   if [ -n "$RECENT_FILE" ]; then
     CONV_FILE="$RECENT_FILE"
