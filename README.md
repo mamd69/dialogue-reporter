@@ -7,13 +7,13 @@ Automatically log all your Claude Code conversations to beautiful markdown files
 Dialogue Reporter captures every conversation you have with Claude Code and saves it as a well-formatted markdown file. Perfect for documentation, sharing, learning, or archiving your AI-assisted development sessions.
 
 **Features:**
-- Automatic conversation capture with <5ms overhead
+- Automatic conversation capture using Claude Code Hooks
 - Beautiful markdown formatting with syntax highlighting
 - One-command installation
 - Zero configuration required (smart defaults)
 - Customizable output format and location
 - Works with all Claude Code features (tools, edits, bash commands)
-- MCP protocol integration
+- Sequential file numbering per day
 - Cross-session persistence
 
 ## Quick Install
@@ -31,12 +31,12 @@ npx dialogue-reporter install
 
 That's it! The installation script will:
 - Detect your Claude Code project
-- Register the MCP server automatically
+- Install Claude Code Hooks (SessionStart and SessionEnd)
 - Create a default configuration
 - Setup the output directory (`docs/claude-conversations/`)
 - Run a verification test
 
-**Note:** Works standalone or with Claude Flow. No other dependencies required!
+**Note:** Uses Claude Code's native hook system. Works standalone or with Claude Flow!
 
 ### Step 4: Verify
 ```bash
@@ -45,12 +45,11 @@ dialogue-reporter verify
 
 You should see:
 ```
-✓ MCP server responding
+✓ Claude Code hooks installed
 ✓ Configuration valid
 ✓ Output directory writable
-✓ Test conversation captured
-✓ Markdown file created
-✓ Performance: 3.2ms overhead
+✓ SessionStart hook executable
+✓ SessionEnd hook executable
 ✅ All checks passed
 ```
 
@@ -68,13 +67,22 @@ The installer will integrate seamlessly with your existing setup.
 
 ## How It Works
 
-Once installed, Dialogue Reporter automatically:
+Dialogue Reporter uses **Claude Code Hooks** to capture conversations:
 
-1. **Captures** - Hooks into Claude Code conversation events (<2ms overhead)
-2. **Formats** - Converts to markdown with proper code blocks and syntax (<2ms)
-3. **Saves** - Writes to sequential files every 5 seconds (<1ms)
+1. **SessionStart Hook** - Runs when Claude Code starts
+   - Creates new conversation file: `claude-convo-YYYY-MM-DD-N.md`
+   - Adds header with date, time, model, and session ID
+   - Uses sequential numbering (1, 2, 3...) for multiple sessions same day
 
-All of this happens automatically in the background with minimal performance impact (<5ms total).
+2. **SessionEnd Hook** - Runs when you type `/exit` or close Claude Code
+   - Captures the full conversation transcript
+   - Appends all messages (Human and Assistant) to the file
+   - Formats code blocks with syntax highlighting
+
+**When Files Are Written:**
+- File **created** at session start (with header)
+- Transcript **appended** at session end (when you exit)
+- One file per session (not per message)
 
 ## Output Format
 
@@ -210,14 +218,14 @@ dialogue-reporter --help           # Show help
 
 ## Verification
 
-After installation, start any Claude Code conversation and check your output directory:
+After installation, start any Claude Code conversation. When you type `/exit`, check your output directory:
 
 ```bash
-ls -la ./dialogue-reports/
-cat ./dialogue-reports/conversation-*.md
+ls -la docs/claude-conversations/
+cat docs/claude-conversations/claude-convo-*.md
 ```
 
-You should see a new markdown file for your conversation.
+You should see a new markdown file with your full conversation transcript.
 
 ## Examples
 
@@ -225,11 +233,18 @@ You should see a new markdown file for your conversation.
 
 **Input:** Simple back-and-forth with Claude Code
 
-**Output:** `./dialogue-reports/conversation-2025-11-07-14-30-45.md`
+**Output:** `docs/claude-conversations/claude-convo-2025-11-12-1.md`
 ```markdown
-# Conversation - November 7, 2025 at 2:30 PM
+# Claude Code Conversation
 
-## User
+**Date:** Tuesday, November 12, 2025
+**Time:** 14:30:45
+**Model:** claude-sonnet-4-5-20250929
+**Session:** basic-conversation
+
+---
+
+## Human
 What is the time complexity of quicksort?
 
 ## Assistant
@@ -306,12 +321,12 @@ export PATH="$PATH:$(npm config get prefix)/bin"
 
 ---
 
-**Problem:** MCP server not registered
+**Problem:** Hooks not firing
 
 **Solution:**
 ```bash
-# Check .mcprc.json
-cat .mcprc.json
+# Check Claude Code settings
+cat .claude/settings.json | grep -A 10 "SessionStart"
 
 # Re-register manually
 dialogue-reporter install --force
@@ -326,10 +341,10 @@ dialogue-reporter install --force
 **Solution:**
 ```bash
 # Check directory permissions
-ls -la ./dialogue-reports/
+ls -la docs/claude-conversations/
 
 # Fix permissions
-chmod 755 ./dialogue-reports/
+chmod 755 docs/claude-conversations/
 
 # Or use a different directory
 dialogue-reporter configure
@@ -344,16 +359,17 @@ dialogue-reporter configure
 
 **Solution:**
 ```bash
-# Check status
-dialogue-reporter status
+# Check hooks are executable
+ls -la .claude/hooks/Session*.sh
 
-# Check logs
-dialogue-reporter logs
+# Make hooks executable if needed
+chmod +x .claude/hooks/SessionStart.sh
+chmod +x .claude/hooks/SessionEnd.sh
 
-# Verify MCP server is running
-ps aux | grep dialogue-reporter
+# Check hook output manually
+echo '{"sessionId":"test"}' | .claude/hooks/SessionStart.sh
 
-# Restart MCP server (restart Claude Code)
+# Restart Claude Code to reload hooks
 ```
 
 ---
@@ -396,8 +412,8 @@ dialogue-reporter config reset
 dialogue-reporter verify --verbose
 
 # Check each component
-dialogue-reporter status          # MCP server status
-ls -la ./dialogue-reports/        # Output directory
+ls -la .claude/hooks/Session*.sh  # Hook scripts
+ls -la docs/claude-conversations/ # Output directory
 cat .dialogue-reporter.json       # Configuration
 
 # Re-install if needed
@@ -411,17 +427,17 @@ dialogue-reporter install
 
 **Q: Where are my conversation files?**
 
-A: By default, in `./dialogue-reports/` relative to your project root. Check with:
+A: By default, in `docs/claude-conversations/` relative to your project root. Check with:
 ```bash
 dialogue-reporter config show
 ```
 
 **Q: How do I stop capturing conversations?**
 
-A: Either uninstall or disable the MCP server:
+A: Either uninstall or disable the hooks:
 ```bash
 dialogue-reporter uninstall
-# Or temporarily stop Claude Code
+# Or manually remove hooks from .claude/settings.json
 ```
 
 **Q: Can I exclude certain conversations?**
@@ -430,7 +446,7 @@ A: Not currently, but you can manually delete unwanted markdown files. Future ve
 
 **Q: What's the performance impact?**
 
-A: <5ms per interaction. For a typical conversation with 20 messages, total overhead is ~100ms, which is imperceptible.
+A: Minimal! Hooks run at session start/end only. SessionStart takes ~50ms to create the file header, SessionEnd takes ~100-200ms to append the transcript. No overhead during the actual conversation.
 
 **Q: Does it work offline?**
 
@@ -442,21 +458,82 @@ A: Currently only supports Claude Code (VS Code extension). Support for other ID
 
 ## Performance
 
-Dialogue Reporter is designed for minimal overhead:
+Dialogue Reporter uses Claude Code Hooks for zero runtime overhead:
 
-- **Conversation capture:** <2ms per message
-- **Markdown formatting:** <2ms per message
-- **File writing:** <1ms (async, non-blocking)
-- **Total overhead:** <5ms per interaction
-- **Memory usage:** <10MB
+- **Session Start:** ~50ms (creates file header once)
+- **During Conversation:** 0ms overhead (hooks don't run)
+- **Session End:** ~100-200ms (appends transcript once)
+- **Memory usage:** None (no background processes)
 
-Even with hundreds of messages, you won't notice any slowdown.
+Your conversations are completely unaffected. Hooks only run at session boundaries.
+
+## Technical Details
+
+### Hook Architecture
+
+Dialogue Reporter registers two bash scripts as Claude Code hooks:
+
+1. **`.claude/hooks/SessionStart.sh`**
+   - Triggered when Claude Code starts
+   - Creates conversation file with header
+   - Uses sequential numbering per day
+   - Stores filename in `/tmp/dialogue-reporter-current-file.txt`
+
+2. **`.claude/hooks/SessionEnd.sh`**
+   - Triggered on `/exit` or when Claude Code closes
+   - Receives full transcript via stdin as JSON
+   - Parses with `jq` and appends to file
+   - Cleans up temp tracking file
+
+### Hook Registration
+
+Hooks are registered in `.claude/settings.json`:
+```json
+{
+  "hooks": {
+    "SessionStart": [{
+      "hooks": [{
+        "type": "command",
+        "command": ".claude/hooks/SessionStart.sh"
+      }]
+    }],
+    "Stop": [{
+      "hooks": [{
+        "type": "command",
+        "command": ".claude/hooks/SessionEnd.sh"
+      }]
+    }]
+  }
+}
+```
+
+### Data Flow
+
+```
+Claude Code Start
+    ↓
+SessionStart Hook fires
+    ↓
+Create: claude-convo-2025-11-12-1.md (with header)
+    ↓
+[Conversation happens - no hooks]
+    ↓
+User types /exit
+    ↓
+SessionEnd Hook fires
+    ↓
+Receive transcript JSON via stdin
+    ↓
+Parse with jq → Append to file
+    ↓
+File complete with full conversation
+```
 
 ## Requirements
 
 - Node.js 18.0.0 or higher
-- Claude Flow installed and configured
 - Claude Code (VS Code extension)
+- `jq` command-line tool (for JSON parsing in hooks)
 
 ## Support
 
