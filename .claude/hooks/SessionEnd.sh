@@ -1,56 +1,53 @@
 #!/usr/bin/env bash
-# Session End Hook - Save full conversation transcript
+# Session End Hook - Final cleanup and save
 
-# Read the transcript from stdin
+# Load configuration for timezone
+CONFIG_FILE=".dialogue-reporter.config"
+if [ -f "$CONFIG_FILE" ]; then
+  source "$CONFIG_FILE"
+fi
+export TZ="${TIMEZONE:-America/New_York}"
+
+# Read hook input
 INPUT=$(cat)
+TRANSCRIPT_PATH=$(echo "$INPUT" | jq -r '.transcript_path // ""')
+CONV_FILE=$(cat /tmp/dialogue-reporter/current-file.txt 2>/dev/null)
 
-# Get the conversation file
-CONV_FILE=$(cat /tmp/dialogue-reporter-current-file.txt 2>/dev/null)
+if [ -n "$CONV_FILE" ] && [ -f "$CONV_FILE" ]; then
+  # Do a final capture of any remaining messages
+  if [ -n "$TRANSCRIPT_PATH" ] && [ -f "$TRANSCRIPT_PATH" ]; then
+    LAST_INDEX=$(cat /tmp/dialogue-reporter/last-message-index.txt 2>/dev/null || echo "0")
+    TOTAL_MESSAGES=$(jq 'length' "$TRANSCRIPT_PATH" 2>/dev/null || echo "0")
 
-if [ -z "$CONV_FILE" ]; then
-  # Fallback: create file if it doesn't exist
-  DIR="docs/claude-conversations"
-  DATE=$(date +%Y-%m-%d)
-  mkdir -p "$DIR"
+    # Capture any remaining messages
+    for ((i=$LAST_INDEX; i<$TOTAL_MESSAGES; i++)); do
+      ROLE=$(jq -r ".[$i].role // empty" "$TRANSCRIPT_PATH")
+      CONTENT=$(jq -r ".[$i].content // empty" "$TRANSCRIPT_PATH")
 
-  NUMBER=1
-  while [ -f "$DIR/claude-convo-$DATE-$NUMBER.md" ]; do
-    NUMBER=$((NUMBER + 1))
-  done
+      if [ -n "$CONTENT" ]; then
+        if [ "$ROLE" = "user" ]; then
+          cat >> "$CONV_FILE" <<EOF
 
-  CONV_FILE="$DIR/claude-convo-$DATE-$NUMBER.md"
+## Human
 
-  cat > "$CONV_FILE" <<EOF
-# Claude Code Conversation
-
-**Date:** $(date +"%A, %B %d, %Y")
-**Time:** $(date +"%H:%M:%S")
-**Session:** conversation-end
-
----
+$CONTENT
 
 EOF
+        elif [ "$ROLE" = "assistant" ]; then
+          cat >> "$CONV_FILE" <<EOF
+
+## Assistant
+
+$CONTENT
+
+EOF
+        fi
+      fi
+    done
+  fi
+
+  echo "✅ Conversation saved: $CONV_FILE" >&2
 fi
 
-# Extract transcript from hook input
-TRANSCRIPT=$(echo "$INPUT" | jq -r '.transcript // empty')
-
-if [ -n "$TRANSCRIPT" ]; then
-  # Append the full transcript
-  echo "$TRANSCRIPT" >> "$CONV_FILE"
-else
-  # Try to extract messages array
-  echo "$INPUT" | jq -r '
-    .messages[]? |
-    if .role == "user" then
-      "\n## Human\n\n\(.content)\n"
-    elif .role == "assistant" then
-      "\n## Assistant\n\n\(.content)\n"
-    else
-      ""
-    end
-  ' >> "$CONV_FILE" 2>/dev/null
-fi
-
-# Clean up temp file
-rm -f /tmp/dialogue-reporter-current-file.txt
+# Clean up temp files
+rm -rf /tmp/dialogue-reporter 2>/dev/null

@@ -1,0 +1,145 @@
+# Dialogue Reporter Configuration
+
+## Overview
+
+Dialogue Reporter can be configured using the `.dialogue-reporter.config` file in your project root.
+
+## Configuration File
+
+Create a `.dialogue-reporter.config` file in your project root:
+
+```bash
+# Dialogue Reporter Configuration
+
+# Timezone for conversation timestamps
+# Default: America/New_York (Eastern US Time)
+TIMEZONE="America/New_York"
+
+# Output directory for conversation files
+# Default: docs/claude-conversations
+OUTPUT_DIR="docs/claude-conversations"
+
+# File naming pattern
+# Default: claude-convo-{date}-{number}.md
+FILENAME_PATTERN="claude-convo-{date}-{number}.md"
+```
+
+## Timezone Configuration
+
+### Default Timezone
+
+By default, conversation timestamps are displayed in **Eastern US Time** (America/New_York).
+
+### Changing the Timezone
+
+Edit `.dialogue-reporter.config` and set the `TIMEZONE` variable to your preferred timezone:
+
+```bash
+TIMEZONE="America/Los_Angeles"  # Pacific Time
+```
+
+### Common Timezones
+
+| Timezone | Value |
+|----------|-------|
+| Eastern Time | `America/New_York` |
+| Central Time | `America/Chicago` |
+| Mountain Time | `America/Denver` |
+| Pacific Time | `America/Los_Angeles` |
+| UTC | `UTC` |
+| UK Time | `Europe/London` |
+| Central European Time | `Europe/Paris` |
+| Tokyo Time | `Asia/Tokyo` |
+
+For a complete list of valid timezone values, see: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+
+### Verifying Timezone
+
+After changing the timezone configuration:
+
+1. Start a new Claude Code session
+2. Check the timestamp in the newly created conversation file
+3. The timestamp should now reflect your configured timezone
+
+## Output Directory
+
+Change where conversation files are saved:
+
+```bash
+OUTPUT_DIR="my-conversations"
+```
+
+**Note:** The directory will be created automatically if it doesn't exist.
+
+## File Naming Pattern
+
+Customize the conversation file naming pattern:
+
+```bash
+FILENAME_PATTERN="conversation-{date}-{number}.md"
+```
+
+**Available variables:**
+- `{date}` - Current date in YYYY-MM-DD format
+- `{number}` - Sequential number for files on the same day
+
+## Example Configurations
+
+### West Coast Developer
+
+```bash
+TIMEZONE="America/Los_Angeles"
+OUTPUT_DIR="docs/conversations"
+FILENAME_PATTERN="session-{date}-{number}.md"
+```
+
+### European Developer
+
+```bash
+TIMEZONE="Europe/London"
+OUTPUT_DIR="docs/claude-sessions"
+FILENAME_PATTERN="dialogue-{date}-{number}.md"
+```
+
+### UTC for Global Teams
+
+```bash
+TIMEZONE="UTC"
+OUTPUT_DIR="docs/conversations"
+FILENAME_PATTERN="claude-convo-{date}-{number}.md"
+```
+
+## Configuration Priority
+
+1. `.dialogue-reporter.config` file (if exists)
+2. Default values:
+   - TIMEZONE: `America/New_York`
+   - OUTPUT_DIR: `docs/claude-conversations`
+   - FILENAME_PATTERN: `claude-convo-{date}-{number}.md`
+
+## Troubleshooting
+
+### Timestamps Still Wrong
+
+If timestamps aren't reflecting your timezone:
+
+1. Verify the timezone value is correct (check Wikipedia link above)
+2. Ensure `.dialogue-reporter.config` is in your project root
+3. Restart Claude Code to reload the configuration
+4. Check for syntax errors in the config file
+
+### Configuration Not Loading
+
+```bash
+# Verify config file exists and is readable
+ls -la .dialogue-reporter.config
+cat .dialogue-reporter.config
+```
+
+### Invalid Timezone
+
+If you get errors about invalid timezones:
+
+1. Check the timezone value matches the tz database format
+2. Use `timedatectl list-timezones` on Linux to see available timezones
+3. Common mistake: Using "EST" instead of "America/New_York"

@@ -100,6 +100,10 @@
         "hooks": [
           {
             "type": "command",
+            "command": ".claude/hooks/Stop.sh"
+          },
+          {
+            "type": "command",
             "command": "npx claude-flow@alpha hooks session-end --generate-summary true --persist-state true --export-metrics true"
           },
           {
@@ -115,6 +119,16 @@
           {
             "type": "command",
             "command": ".claude/hooks/SessionStart.sh"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/UserPromptSubmit.sh"
           }
         ]
       }

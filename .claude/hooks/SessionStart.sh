@@ -1,7 +1,23 @@
 #!/usr/bin/env bash
 # Session Start Hook - Initialize new conversation file
 
-DIR="docs/claude-conversations"
+# Read hook input to get session info
+INPUT=$(cat)
+SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // "unknown"')
+TRANSCRIPT_PATH=$(echo "$INPUT" | jq -r '.transcript_path // ""')
+
+# Load configuration
+CONFIG_FILE=".dialogue-reporter.config"
+if [ -f "$CONFIG_FILE" ]; then
+  source "$CONFIG_FILE"
+fi
+
+# Use configured values or defaults
+TIMEZONE=${TIMEZONE:-"America/New_York"}
+DIR=${OUTPUT_DIR:-"docs/claude-conversations"}
+
+# Set timezone for date commands
+export TZ="$TIMEZONE"
 DATE=$(date +%Y-%m-%d)
 
 # Ensure directory exists
@@ -22,11 +38,17 @@ cat > "$FILE" <<EOF
 **Date:** $(date +"%A, %B %d, %Y")
 **Time:** $(date +"%H:%M:%S")
 **Model:** claude-sonnet-4-5-20250929
-**Session:** $(cat | jq -r '.sessionId // "unknown"')
+**Session:** $SESSION_ID
 
 ---
 
 EOF
 
-# Store filename for other hooks to use
-echo "$FILE" > /tmp/dialogue-reporter-current-file.txt
+# Store metadata for other hooks
+mkdir -p /tmp/dialogue-reporter
+echo "$FILE" > /tmp/dialogue-reporter/current-file.txt
+echo "$SESSION_ID" > /tmp/dialogue-reporter/session-id.txt
+echo "$TRANSCRIPT_PATH" > /tmp/dialogue-reporter/transcript-path.txt
+echo "0" > /tmp/dialogue-reporter/last-message-index.txt
+
+echo "📝 Conversation started: $FILE" >&2

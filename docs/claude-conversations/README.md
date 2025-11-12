@@ -85,9 +85,32 @@ Each conversation log is a markdown file with the following structure:
 
 ## ⚙️ Configuration
 
-Dialogue Reporter is configured via `.dialogue-reporter.json` in your project root.
+Dialogue Reporter is configured via `.dialogue-reporter.config` in your project root.
 
-### Current Configuration:
+### Timezone Configuration
+
+By default, timestamps are displayed in **Eastern US Time** (America/New_York).
+
+To change the timezone, create a `.dialogue-reporter.config` file in your project root:
+
+```bash
+# Timezone for conversation timestamps
+TIMEZONE="America/Los_Angeles"  # Pacific Time
+
+# Output directory (optional)
+OUTPUT_DIR="docs/claude-conversations"
+```
+
+**Common timezones:**
+- `America/New_York` - Eastern Time (default)
+- `America/Chicago` - Central Time
+- `America/Denver` - Mountain Time
+- `America/Los_Angeles` - Pacific Time
+- `UTC` - Coordinated Universal Time
+
+See `docs/CONFIGURATION.md` for complete timezone configuration options.
+
+### Legacy JSON Configuration:
 ```json
 {
   "outputDirectory": "docs/claude-conversations",
