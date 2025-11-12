@@ -97,6 +97,12 @@ format_tool_use() {
 
   echo "  Formatting tool: $tool_name (mode: $TOOL_DISPLAY)" >> "$LOG_FILE"
 
+  # Skip completely for hidden mode
+  if [ "$TOOL_DISPLAY" = "hidden" ]; then
+    echo "  Hidden mode - skipping tool output" >> "$LOG_FILE"
+    return
+  fi
+
   # Start tool section if first tool
   if [ "$IN_TOOLS" = false ]; then
     IN_TOOLS=true
