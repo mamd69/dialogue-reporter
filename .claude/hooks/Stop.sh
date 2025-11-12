@@ -45,7 +45,17 @@ if [ -z "$CONV_FILE" ]; then
     # Initialize temp tracking
     mkdir -p /tmp/dialogue-reporter
     echo "$CONV_FILE" > /tmp/dialogue-reporter/current-file.txt
-    echo "$LAST_LINE" > /tmp/dialogue-reporter/last-line-processed.txt
+
+    # IMPORTANT: When recovering conversation file, start from current transcript position
+    # to avoid reprocessing old content. Use transcript total lines, not LAST_LINE=0.
+    if [ -n "$TRANSCRIPT_PATH" ] && [ -f "$TRANSCRIPT_PATH" ]; then
+      RECOVERED_LINE=$(wc -l < "$TRANSCRIPT_PATH")
+      echo "$RECOVERED_LINE" > /tmp/dialogue-reporter/last-line-processed.txt
+      LAST_LINE=$RECOVERED_LINE
+      echo "⚠️  Recovered LAST_LINE from current transcript position: $LAST_LINE" >> "$LOG_FILE"
+    else
+      echo "$LAST_LINE" > /tmp/dialogue-reporter/last-line-processed.txt
+    fi
   else
     echo "❌ No conversation file found. Skipping." >> "$LOG_FILE"
     exit 0
