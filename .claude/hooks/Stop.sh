@@ -60,10 +60,9 @@ if [ "$TOTAL_LINES" -le "$LAST_LINE" ]; then
   exit 0
 fi
 
-# Temporary file to buffer assistant turn content
+# Temporary file to accumulate ALL content for this Stop hook run
 BUFFER_FILE="/tmp/dialogue-reporter-buffer.txt"
 rm -f "$BUFFER_FILE"
-rm -f /tmp/dialogue-reporter-in-tools
 
 # Variables to track current message
 CURRENT_MSG_ID=""
@@ -154,31 +153,6 @@ close_tools_section() {
   fi
 }
 
-# Function to flush buffer to conversation file
-flush_buffer() {
-  if [ "$HAS_CONTENT" = true ] && [ -f "$BUFFER_FILE" ] && [ -s "$BUFFER_FILE" ]; then
-    # Close any open tools section
-    close_tools_section
-
-    # Write header
-    echo "" >> "$CONV_FILE"
-    echo "## Assistant" >> "$CONV_FILE"
-    echo "" >> "$CONV_FILE"
-
-    # Append buffered content
-    cat "$BUFFER_FILE" >> "$CONV_FILE"
-
-    echo "✓ Flushed assistant turn ($(wc -l < "$BUFFER_FILE") lines) to $CONV_FILE" >> "$LOG_FILE"
-
-    # Clear buffer
-    rm -f "$BUFFER_FILE"
-    HAS_CONTENT=false
-    IN_TOOLS=false
-  else
-    echo "  No content to flush (HAS_CONTENT=$HAS_CONTENT, buffer exists=$([ -f "$BUFFER_FILE" ] && echo yes || echo no))" >> "$LOG_FILE"
-  fi
-}
-
 # Process new lines from JSONL transcript using process substitution to avoid subshell
 while IFS= read -r line; do
   # Extract message info
@@ -198,11 +172,11 @@ while IFS= read -r line; do
 
   echo "Processing message.id=$MSG_ID (current=$CURRENT_MSG_ID)" >> "$LOG_FILE"
 
-  # Check if this is a new message (different message.id)
+  # Track message ID changes (for logging, but DON'T flush on change)
   if [ -n "$CURRENT_MSG_ID" ] && [ "$MSG_ID" != "$CURRENT_MSG_ID" ]; then
-    # New message started - flush previous message
-    echo "→ New message detected, flushing previous" >> "$LOG_FILE"
-    flush_buffer
+    # Close tools section when message changes, but don't flush
+    close_tools_section
+    echo "→ Message ID changed from $CURRENT_MSG_ID to $MSG_ID (continuing to buffer)" >> "$LOG_FILE"
     CURRENT_MSG_ID="$MSG_ID"
   elif [ -z "$CURRENT_MSG_ID" ]; then
     # First message
@@ -242,9 +216,26 @@ while IFS= read -r line; do
   esac
 done < <(tail -n +$((LAST_LINE + 1)) "$TRANSCRIPT_PATH")
 
-# Final flush for last message
-echo "→ Final flush" >> "$LOG_FILE"
-flush_buffer
+# Close any open tools section
+close_tools_section
+
+# Write ALL buffered content with ONE "## Assistant" header
+if [ "$HAS_CONTENT" = true ] && [ -f "$BUFFER_FILE" ] && [ -s "$BUFFER_FILE" ]; then
+  # Write header ONCE
+  echo "" >> "$CONV_FILE"
+  echo "## Assistant" >> "$CONV_FILE"
+  echo "" >> "$CONV_FILE"
+
+  # Append ALL buffered content
+  cat "$BUFFER_FILE" >> "$CONV_FILE"
+
+  echo "✓ Wrote complete assistant turn ($(wc -l < "$BUFFER_FILE") lines) to $CONV_FILE" >> "$LOG_FILE"
+
+  # Clear buffer
+  rm -f "$BUFFER_FILE"
+else
+  echo "  No content to write (HAS_CONTENT=$HAS_CONTENT, buffer exists=$([ -f "$BUFFER_FILE" ] && echo yes || echo no))" >> "$LOG_FILE"
+fi
 
 # Update last processed line
 echo "$TOTAL_LINES" > /tmp/dialogue-reporter/last-line-processed.txt
