@@ -87,7 +87,7 @@ Each conversation log is a markdown file with the following structure:
 
 Dialogue Reporter is configured via `.dialogue-reporter.config` in your project root.
 
-### Timezone Configuration
+### Quick Timezone Setup
 
 By default, timestamps are displayed in **Eastern US Time** (America/New_York).
 
@@ -102,13 +102,24 @@ OUTPUT_DIR="docs/claude-conversations"
 ```
 
 **Common timezones:**
-- `America/New_York` - Eastern Time (default)
-- `America/Chicago` - Central Time
-- `America/Denver` - Mountain Time
-- `America/Los_Angeles` - Pacific Time
-- `UTC` - Coordinated Universal Time
+- `America/New_York` - Eastern Time (default) 🗽
+- `America/Chicago` - Central Time 🌆
+- `America/Denver` - Mountain Time 🏔️
+- `America/Los_Angeles` - Pacific Time 🌴
+- `UTC` - Coordinated Universal Time 🌍
+- `Europe/London` - UK Time 🇬🇧
+- `Asia/Tokyo` - Japan Time 🇯🇵
 
-See `docs/CONFIGURATION.md` for complete timezone configuration options.
+### Complete Configuration Guide
+
+For detailed configuration options including:
+- Full timezone list and examples
+- Output directory customization
+- File naming patterns
+- Troubleshooting timezone issues
+- International timezone examples
+
+**See:** `docs/claude-conversations/CONFIGURATION.md`
 
 ### Legacy JSON Configuration:
 ```json
@@ -279,10 +290,10 @@ dialogue-reporter logs
 
 ## 📚 Additional Resources
 
-- **Installation Guide:** See main README.md
-- **Configuration Guide:** `/docs/configuration.md`
-- **Troubleshooting:** `/docs/troubleshooting.md`
-- **API Documentation:** `/docs/api/`
+- **Installation Guide:** See main README.md in project root
+- **Configuration Guide:** `docs/claude-conversations/CONFIGURATION.md` (in this directory)
+- **Fix History:** `docs/FIXES-2025-11-12.md`
+- **Test Scripts:** `tests/test-conversation-capture.sh`
 
 ## 🆘 Support
 

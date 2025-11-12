@@ -1,8 +1,10 @@
-# Dialogue Reporter Configuration
+# Dialogue Reporter Configuration Guide
 
 ## Overview
 
-Dialogue Reporter can be configured using the `.dialogue-reporter.config` file in your project root.
+Dialogue Reporter can be configured using the `.dialogue-reporter.config` file in your **project root** (not in this directory).
+
+> **Location:** Create `.dialogue-reporter.config` in the same directory as your `.claude` folder.
 
 ## Configuration File
 
