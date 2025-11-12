@@ -11,6 +11,12 @@ TRANSCRIPT_PATH=$(echo "$INPUT" | jq -r '.transcript_path // ""')
 CONV_FILE=$(cat /tmp/dialogue-reporter/current-file.txt 2>/dev/null)
 LAST_LINE=$(cat /tmp/dialogue-reporter/last-line-processed.txt 2>/dev/null || echo "0")
 
+# Validate LAST_LINE is a number, default to 0 if corrupted
+if ! [[ "$LAST_LINE" =~ ^[0-9]+$ ]]; then
+  echo "⚠️  LAST_LINE corrupted: '$LAST_LINE', resetting to 0" >> "$LOG_FILE"
+  LAST_LINE=0
+fi
+
 echo "TRANSCRIPT_PATH=$TRANSCRIPT_PATH" >> "$LOG_FILE"
 echo "CONV_FILE=$CONV_FILE" >> "$LOG_FILE"
 echo "LAST_LINE=$LAST_LINE" >> "$LOG_FILE"
