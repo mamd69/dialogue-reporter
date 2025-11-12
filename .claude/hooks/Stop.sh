@@ -46,16 +46,19 @@ if [ -z "$CONV_FILE" ]; then
     mkdir -p /tmp/dialogue-reporter
     echo "$CONV_FILE" > /tmp/dialogue-reporter/current-file.txt
 
-    # IMPORTANT: When recovering conversation file, start from current transcript position
-    # to avoid reprocessing old content. Use transcript total lines, not LAST_LINE=0.
-    if [ -n "$TRANSCRIPT_PATH" ] && [ -f "$TRANSCRIPT_PATH" ]; then
-      RECOVERED_LINE=$(wc -l < "$TRANSCRIPT_PATH")
-      echo "$RECOVERED_LINE" > /tmp/dialogue-reporter/last-line-processed.txt
+    # Try to recover LAST_LINE from conversation file metadata comment
+    RECOVERED_LINE=$(grep "^<!-- LAST_LINE: " "$CONV_FILE" 2>/dev/null | tail -1 | sed 's/<!-- LAST_LINE: \([0-9]*\) -->/\1/')
+
+    if [ -n "$RECOVERED_LINE" ] && [[ "$RECOVERED_LINE" =~ ^[0-9]+$ ]]; then
       LAST_LINE=$RECOVERED_LINE
-      echo "⚠️  Recovered LAST_LINE from current transcript position: $LAST_LINE" >> "$LOG_FILE"
+      echo "✓ Recovered LAST_LINE from conversation file: $LAST_LINE" >> "$LOG_FILE"
     else
-      echo "$LAST_LINE" > /tmp/dialogue-reporter/last-line-processed.txt
+      # No metadata found - start from 0 to be safe
+      LAST_LINE=0
+      echo "⚠️  No LAST_LINE metadata found, starting from 0" >> "$LOG_FILE"
     fi
+
+    echo "$LAST_LINE" > /tmp/dialogue-reporter/last-line-processed.txt
   else
     echo "❌ No conversation file found. Skipping." >> "$LOG_FILE"
     exit 0
@@ -259,8 +262,18 @@ else
   echo "  No content to write (HAS_CONTENT=$HAS_CONTENT, buffer exists=$([ -f "$BUFFER_FILE" ] && echo yes || echo no))" >> "$LOG_FILE"
 fi
 
-# Update last processed line
+# Update last processed line in temp file
 echo "$TOTAL_LINES" > /tmp/dialogue-reporter/last-line-processed.txt
+
+# IMPORTANT: Also write LAST_LINE as metadata comment in conversation file
+# This allows recovery if /tmp files are cleared
+# First, remove any existing LAST_LINE comment
+if [ -f "$CONV_FILE" ]; then
+  grep -v "^<!-- LAST_LINE: " "$CONV_FILE" > "$CONV_FILE.tmp" && mv "$CONV_FILE.tmp" "$CONV_FILE"
+  # Append new LAST_LINE metadata
+  echo "" >> "$CONV_FILE"
+  echo "<!-- LAST_LINE: $TOTAL_LINES -->" >> "$CONV_FILE"
+fi
 
 echo "Successfully processed transcript" >> "$LOG_FILE"
 echo "Updated last line to: $TOTAL_LINES" >> "$LOG_FILE"
