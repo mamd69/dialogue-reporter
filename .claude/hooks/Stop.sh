@@ -64,6 +64,25 @@ if [ -z "$CONV_FILE" ]; then
   fi
 fi
 
+# IMPORTANT: Even if CONV_FILE was already set, check if LAST_LINE needs recovery
+# This handles the case where /tmp/dialogue-reporter/current-file.txt exists
+# but /tmp/dialogue-reporter/last-line-processed.txt was cleared
+if [ "$LAST_LINE" = "0" ] && [ -n "$CONV_FILE" ] && [ -f "$CONV_FILE" ]; then
+  echo "⚠️  LAST_LINE is 0 but CONV_FILE exists, attempting metadata recovery..." >> "$LOG_FILE"
+
+  RECOVERED_LINE=$(grep "^<!-- LAST_LINE: " "$CONV_FILE" 2>/dev/null | tail -1 | sed 's/<!-- LAST_LINE: \([0-9]*\) -->/\1/')
+
+  if [ -n "$RECOVERED_LINE" ] && [[ "$RECOVERED_LINE" =~ ^[0-9]+$ ]]; then
+    LAST_LINE=$RECOVERED_LINE
+    echo "✓ Recovered LAST_LINE from metadata: $LAST_LINE" >> "$LOG_FILE"
+    # Update temp file
+    mkdir -p /tmp/dialogue-reporter
+    echo "$LAST_LINE" > /tmp/dialogue-reporter/last-line-processed.txt
+  else
+    echo "⚠️  No LAST_LINE metadata found in $CONV_FILE" >> "$LOG_FILE"
+  fi
+fi
+
 if [ -z "$TRANSCRIPT_PATH" ] || [ ! -f "$TRANSCRIPT_PATH" ]; then
   echo "⚠️  Transcript file not found: $TRANSCRIPT_PATH" >> "$LOG_FILE"
   exit 0
