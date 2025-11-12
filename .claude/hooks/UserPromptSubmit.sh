@@ -24,12 +24,11 @@ if [ -z "$CONV_FILE" ]; then
   fi
 
   DIR="$CWD/docs/claude-conversations"
-  DATE=$(date +%Y-%m-%d)
 
   echo "Looking in: $DIR" >> "$LOG_FILE"
 
-  # Find the most recent conversation file for today
-  RECENT_FILE=$(ls -t "$DIR/claude-convo-$DATE-"*.md 2>/dev/null | head -1)
+  # Find the most recent conversation file (any date)
+  RECENT_FILE=$(ls -t "$DIR"/claude-convo-*.md 2>/dev/null | head -1)
 
   if [ -n "$RECENT_FILE" ]; then
     CONV_FILE="$RECENT_FILE"
