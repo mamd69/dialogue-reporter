@@ -1,571 +1,435 @@
-# Dialogue Reporter
+# 📝 Dialogue Reporter
 
-Automatically log all your Claude Code conversations to beautiful markdown files with zero configuration.
+> Automatically capture and save your Claude Code conversations as beautiful markdown files
 
-## What It Does
+[![npm version](https://img.shields.io/npm/v/dialogue-reporter.svg)](https://www.npmjs.com/package/dialogue-reporter)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Dialogue Reporter captures every conversation you have with Claude Code and saves it as a well-formatted markdown file. Perfect for documentation, sharing, learning, or archiving your AI-assisted development sessions.
+## ✨ Features
 
-**Features:**
-- Automatic conversation capture using Claude Code Hooks
-- Beautiful markdown formatting with syntax highlighting
-- One-command installation
-- Zero configuration required (smart defaults)
-- Customizable output format and location
-- Works with all Claude Code features (tools, edits, bash commands)
-- Sequential file numbering per day
-- Cross-session persistence
+- **🤖 Automatic Capture** - Works seamlessly with Claude Code hooks
+- **📁 Organized Storage** - Saves conversations with timestamps
+- **⚙️ Configurable** - Control tool display, timezone, and output location
+- **🔄 Persistent** - Survives restarts and /tmp cleanups
+- **🚀 Zero Config** - Works out of the box with sensible defaults
+- **🐛 Debug-Friendly** - Built-in logging for troubleshooting
 
-## Quick Install
+## 📦 Installation
 
-### Option 1: Install with npm (Recommended)
+### Quick Install
+
 ```bash
+# Install the package globally or in your project
 npm install -g dialogue-reporter
-dialogue-reporter install
-```
 
-### Option 2: Run with npx (No Install)
-```bash
+# Or use with npx (no installation needed)
 npx dialogue-reporter install
 ```
 
-That's it! The installation script will:
-- Detect your Claude Code project
-- Install Claude Code Hooks (SessionStart and SessionEnd)
-- Create a default configuration
-- Setup the output directory (`docs/claude-conversations/`)
-- Run a verification test
+### Step-by-Step
 
-**Note:** Uses Claude Code's native hook system. Works standalone or with Claude Flow!
+1. **Install the package** (if not using npx):
+   ```bash
+   npm install -g dialogue-reporter
+   ```
 
-### Step 4: Verify
+2. **Navigate to your Claude Code project**:
+   ```bash
+   cd your-project-directory
+   ```
+
+3. **Run the installer**:
+   ```bash
+   dialogue-reporter install
+   ```
+
+   Or with npx:
+   ```bash
+   npx dialogue-reporter install
+   ```
+
+4. **Start using Claude Code** - Your conversations will automatically be saved to `docs/claude-conversations/`
+
+## 🎯 How It Works
+
+Dialogue Reporter uses **Claude Code hooks** to capture conversations:
+
+1. **UserPromptSubmit Hook** - Captures your messages when you submit them
+2. **Stop Hook** - Captures Claude's responses when they complete
+3. **Metadata Persistence** - Stores position markers in conversation files to survive restarts
+
+The hooks are bash scripts that:
+- Parse the JSONL transcript file
+- Extract Human and Assistant turns
+- Format them as markdown
+- Save incrementally to prevent data loss
+
+## ⚙️ Configuration
+
+### Default Configuration
+
+After installation, you'll have a `.dialogue-reporter.config` file:
+
 ```bash
-dialogue-reporter verify
+# Timezone for timestamps (uses TZ environment variable format)
+TIMEZONE="America/New_York"
+
+# Output directory for conversation files
+OUTPUT_DIR="docs/claude-conversations"
+
+# Filename pattern for conversation files
+FILENAME_PATTERN="claude-convo-{date}-{number}.md"
+
+# Tool display mode: "detailed", "simple", or "hidden"
+TOOL_DISPLAY="detailed"
 ```
 
-You should see:
-```
-✓ Claude Code hooks installed
-✓ Configuration valid
-✓ Output directory writable
-✓ SessionStart hook executable
-✓ SessionEnd hook executable
-✅ All checks passed
+### Tool Display Modes
+
+Control how tool usage is shown in conversations:
+
+**Detailed Mode** (`TOOL_DISPLAY="detailed"`):
+```markdown
+---
+**Tools Used:**
+
+• **Bash** `npm test`
+  _Run test suite_
+• **Read** `src/index.ts`
+• **Write** `dist/output.js`
+
+---
 ```
 
-## Installation in Existing Projects
+**Simple Mode** (`TOOL_DISPLAY="simple"`):
+```markdown
+---
+**Tools Used:**
+---
+```
 
-Already have a Claude Code project? Just run:
+**Hidden Mode** (`TOOL_DISPLAY="hidden"`):
+```markdown
+(no tools section shown)
+```
+
+### Customization
+
+Edit `.dialogue-reporter.config` to customize:
 
 ```bash
-cd your-project
-npm install -g dialogue-reporter
+# Change timezone
+TIMEZONE="Europe/London"
+
+# Change output directory
+OUTPUT_DIR="conversations"
+
+# Hide tool information
+TOOL_DISPLAY="hidden"
+
+# Custom filename pattern
+FILENAME_PATTERN="chat-{date}-{number}.md"
+```
+
+## 📋 CLI Commands
+
+### Install
+
+Install hooks in the current project:
+
+```bash
 dialogue-reporter install
-```
 
-The installer will integrate seamlessly with your existing setup.
-
-## How It Works
-
-Dialogue Reporter uses **Claude Code Hooks** to capture conversations:
-
-1. **SessionStart Hook** - Runs when Claude Code starts
-   - Creates new conversation file: `claude-convo-YYYY-MM-DD-N.md`
-   - Adds header with date, time, model, and session ID
-   - Uses sequential numbering (1, 2, 3...) for multiple sessions same day
-
-2. **SessionEnd Hook** - Runs when you type `/exit` or close Claude Code
-   - Captures the full conversation transcript
-   - Appends all messages (Human and Assistant) to the file
-   - Formats code blocks with syntax highlighting
-
-**When Files Are Written:**
-- File **created** at session start (with header)
-- Transcript **appended** at session end (when you exit)
-- One file per session (not per message)
-
-## Output Format
-
-Conversations are saved in `docs/claude-conversations/` as:
-```
-docs/claude-conversations/claude-convo-2025-11-11-1.md
-docs/claude-conversations/claude-convo-2025-11-11-2.md  (if multiple conversations same day)
-docs/claude-conversations/claude-convo-2025-11-12-1.md
-```
-
-Example markdown output:
-```markdown
-# Claude Code Conversation
-
-**Date:** Monday, November 11, 2025
-**Time:** 2:44:00 PM
-**Model:** claude-sonnet-4-5-20250929
-**Session:** dialogue-reporter-implementation
-
----
-
-## Human
-Can you help me implement a binary search algorithm?
-
-## Assistant
-I'll help you implement an efficient binary search algorithm...
-
-```python
-def binary_search(arr, target):
-    left, right = 0, len(arr) - 1
-
-    while left <= right:
-        mid = (left + right) // 2
-        if arr[mid] == target:
-            return mid
-        elif arr[mid] < target:
-            left = mid + 1
-        else:
-            right = mid - 1
-
-    return -1
-```
-
-This implementation...
-```
-
-## Configuration Options
-
-While Dialogue Reporter works out-of-the-box, you can customize it:
-
-### View Current Configuration
-```bash
-dialogue-reporter config show
-```
-
-### Edit Configuration
-```bash
-dialogue-reporter configure
-```
-
-### Configuration File (`.dialogue-reporter.json`)
-```json
-{
-  "outputDirectory": "docs/claude-conversations",
-  "filenamePattern": "claude-convo-{date}-{number}.md",
-  "formatting": {
-    "includeMetadata": true,
-    "syntaxHighlighting": true,
-    "includeToolCalls": true,
-    "includeTimestamps": true
-  },
-  "performance": {
-    "maxBufferSize": 100,
-    "flushInterval": 5000
-  }
-}
-```
-
-### Advanced Configuration
-
-**Custom Output Directory:**
-```json
-{
-  "outputDirectory": "./docs/conversations"
-}
-```
-
-**Custom Filename Pattern:**
-```json
-{
-  "filenamePattern": "session-{date}-{session-id}.md"
-}
-```
-
-**Minimal Format (faster):**
-```json
-{
-  "formatting": {
-    "includeMetadata": false,
-    "includeTimestamps": false
-  }
-}
-```
-
-## CLI Commands
-
-### Installation & Setup
-```bash
-dialogue-reporter install          # Automated installation
-dialogue-reporter install --manual # Show manual installation steps
-dialogue-reporter uninstall        # Remove installation
-```
-
-### Configuration
-```bash
-dialogue-reporter configure        # Interactive configuration
-dialogue-reporter config show      # Display current config
-dialogue-reporter config reset     # Reset to defaults
-```
-
-### Verification & Testing
-```bash
-dialogue-reporter verify           # Test installation
-dialogue-reporter test             # Run test conversation
-dialogue-reporter status           # Show current status
-```
-
-### Management
-```bash
-dialogue-reporter logs             # View logs
-dialogue-reporter --help           # Show help
-```
-
-## Verification
-
-After installation, start any Claude Code conversation. When you type `/exit`, check your output directory:
-
-```bash
-ls -la docs/claude-conversations/
-cat docs/claude-conversations/claude-convo-*.md
-```
-
-You should see a new markdown file with your full conversation transcript.
-
-## Examples
-
-### Example 1: Basic Conversation
-
-**Input:** Simple back-and-forth with Claude Code
-
-**Output:** `docs/claude-conversations/claude-convo-2025-11-12-1.md`
-```markdown
-# Claude Code Conversation
-
-**Date:** Tuesday, November 12, 2025
-**Time:** 14:30:45
-**Model:** claude-sonnet-4-5-20250929
-**Session:** basic-conversation
-
----
-
-## Human
-What is the time complexity of quicksort?
-
-## Assistant
-Quicksort has an average-case time complexity of O(n log n)...
-```
-
-### Example 2: Code Generation Session
-
-**Input:** Claude generates multiple files
-
-**Output:** Includes all tool calls and file edits
-```markdown
-## Assistant
-I'll create the API endpoint for you...
-
-**Tool: Write**
-File: `/src/api/users.ts`
-
-```typescript
-export async function getUsers(req: Request, res: Response) {
-  // Implementation...
-}
-```
-
-## User
-Great! Can you add authentication?
-
-## Assistant
-I'll add JWT authentication...
-```
-
-### Example 3: Custom Formatter
-
-Create `./examples/custom-formatter.js`:
-```javascript
-module.exports = function customFormatter(conversation) {
-  return `
-# Session ${conversation.sessionId}
-Date: ${conversation.timestamp}
-
-${conversation.messages.map(msg => `
-**${msg.role}**: ${msg.content}
-`).join('\n')}
-  `.trim();
-};
-```
-
-Use in config:
-```json
-{
-  "formatting": {
-    "customFormatter": "./examples/custom-formatter.js"
-  }
-}
-```
-
-## Troubleshooting
-
-### Installation Issues
-
-**Problem:** `dialogue-reporter: command not found`
-
-**Solution:**
-```bash
-# Ensure global install
-npm install -g dialogue-reporter
-
-# Check npm global path
-npm config get prefix
-
-# Add to PATH if needed (Linux/Mac)
-export PATH="$PATH:$(npm config get prefix)/bin"
-```
-
----
-
-**Problem:** Hooks not firing
-
-**Solution:**
-```bash
-# Check Claude Code settings
-cat .claude/settings.json | grep -A 10 "SessionStart"
-
-# Re-register manually
+# Force reinstall (overwrites existing hooks)
 dialogue-reporter install --force
-
-# Restart Claude Code
 ```
 
----
+### Status
 
-**Problem:** Permission denied on output directory
+Check installation status:
 
-**Solution:**
 ```bash
-# Check directory permissions
-ls -la docs/claude-conversations/
-
-# Fix permissions
-chmod 755 docs/claude-conversations/
-
-# Or use a different directory
-dialogue-reporter configure
-# Set outputDirectory to a writable location
+dialogue-reporter status
 ```
 
----
+Output:
+```
+📊 Dialogue Reporter Status
 
-### Runtime Issues
+✅ Stop.sh
+✅ UserPromptSubmit.sh
+✅ .dialogue-reporter.config
+✅ Output directory: docs/claude-conversations
 
-**Problem:** Conversations not being captured
+📝 5 conversation file(s) captured
 
-**Solution:**
+✅ Dialogue Reporter is installed and ready
+```
+
+### Config
+
+View current configuration:
+
 ```bash
-# Check hooks are executable
-ls -la .claude/hooks/Session*.sh
-
-# Make hooks executable if needed
-chmod +x .claude/hooks/SessionStart.sh
-chmod +x .claude/hooks/SessionEnd.sh
-
-# Check hook output manually
-echo '{"sessionId":"test"}' | .claude/hooks/SessionStart.sh
-
-# Restart Claude Code to reload hooks
+dialogue-reporter config
 ```
 
----
+### Logs
 
-**Problem:** Performance issues / high overhead
+Debug hook execution:
 
-**Solution:**
-```json
-// In .dialogue-reporter.json, reduce buffer size
-{
-  "performance": {
-    "maxBufferSize": 50,
-    "flushInterval": 10000
-  }
-}
-```
-
----
-
-**Problem:** Markdown formatting issues
-
-**Solution:**
 ```bash
-# Reset to default configuration
-dialogue-reporter config reset
+# Show all logs
+dialogue-reporter logs
 
-# Or disable custom formatter
-# Edit .dialogue-reporter.json and remove customFormatter
+# Show only Stop hook logs
+dialogue-reporter logs --stop
+
+# Show only UserPromptSubmit hook logs
+dialogue-reporter logs --user
 ```
 
----
+### Uninstall
 
-### Verification Failures
+Remove Dialogue Reporter from the project:
 
-**Problem:** `dialogue-reporter verify` fails
-
-**Solution:**
 ```bash
-# Run with verbose output
-dialogue-reporter verify --verbose
-
-# Check each component
-ls -la .claude/hooks/Session*.sh  # Hook scripts
-ls -la docs/claude-conversations/ # Output directory
-cat .dialogue-reporter.json       # Configuration
-
-# Re-install if needed
 dialogue-reporter uninstall
+
+# Keep conversation files when uninstalling
+dialogue-reporter uninstall --keep-conversations
+```
+
+## 📖 Usage Examples
+
+### Basic Usage
+
+1. Install in your project:
+   ```bash
+   cd my-claude-project
+   npx dialogue-reporter install
+   ```
+
+2. Start Claude Code and have a conversation
+
+3. Check the output:
+   ```bash
+   ls docs/claude-conversations/
+   # claude-convo-2025-11-12-1.md
+   # claude-convo-2025-11-12-2.md
+   ```
+
+### Viewing Conversations
+
+Conversations are saved as markdown files:
+
+```markdown
+# Conversation - November 12, 2025
+
+## Human
+
+Can you help me fix this bug?
+
+## Assistant
+
+I'll help you fix that bug. Let me start by reading the error logs.
+
+---
+**Tools Used:**
+
+• **Read** `logs/error.log`
+• **Bash** `npm test`
+
+---
+
+I found the issue in src/index.ts:42...
+```
+
+### Customizing Tool Display
+
+Want cleaner output? Hide tools:
+
+```bash
+# Edit .dialogue-reporter.config
+echo 'TOOL_DISPLAY="hidden"' >> .dialogue-reporter.config
+```
+
+Now conversations show only the dialogue:
+
+```markdown
+## Human
+
+Can you help me fix this bug?
+
+## Assistant
+
+I'll help you fix that bug. Let me start by reading the error logs.
+
+I found the issue in src/index.ts:42...
+```
+
+## 🔧 Troubleshooting
+
+### Conversations Not Being Captured
+
+1. **Check installation status**:
+   ```bash
+   dialogue-reporter status
+   ```
+
+2. **Check logs for errors**:
+   ```bash
+   dialogue-reporter logs
+   ```
+
+3. **Verify hooks are executable**:
+   ```bash
+   ls -la .claude/hooks/
+   # Should show: -rwxr-xr-x for Stop.sh and UserPromptSubmit.sh
+   ```
+
+4. **Reinstall if needed**:
+   ```bash
+   dialogue-reporter install --force
+   ```
+
+### Duplicate Content in Conversations
+
+This was a bug in earlier versions. Update to v1.0.5+:
+
+```bash
+npm install -g dialogue-reporter@latest
+dialogue-reporter install --force
+```
+
+### Missing Messages
+
+If some messages aren't being captured:
+
+1. **Check debug logs**:
+   ```bash
+   dialogue-reporter logs
+   ```
+
+2. **Look for errors** in `/tmp/dialogue-reporter-debug.log`
+
+3. **Verify LAST_LINE metadata** at the end of conversation files:
+   ```bash
+   tail -5 docs/claude-conversations/claude-convo-*.md
+   # Should show: <!-- LAST_LINE: 123 -->
+   ```
+
+### Permission Errors
+
+Make hooks executable:
+
+```bash
+chmod +x .claude/hooks/Stop.sh
+chmod +x .claude/hooks/UserPromptSubmit.sh
+```
+
+## 🏗️ Architecture
+
+### Hook Flow
+
+```
+Claude Code Conversation
+        ↓
+┌───────────────────┐
+│ User types prompt │
+└────────┬──────────┘
+         ↓
+┌──────────────────────────┐
+│ UserPromptSubmit.sh Hook │  ← Captures Human message
+└────────┬─────────────────┘
+         ↓
+┌────────────────────┐
+│ Claude responds    │
+└────────┬───────────┘
+         ↓
+┌──────────────────────────┐
+│ Stop.sh Hook             │  ← Captures Assistant response
+│ - Reads JSONL transcript │     and tool usage
+│ - Tracks LAST_LINE       │
+│ - Formats markdown       │
+│ - Appends to file        │
+└────────┬─────────────────┘
+         ↓
+┌──────────────────────────┐
+│ Markdown file updated    │
+│ with conversation turn   │
+└──────────────────────────┘
+```
+
+### Persistence Strategy
+
+Dialogue Reporter uses multiple persistence layers:
+
+1. **Temp files**: `/tmp/dialogue-reporter/`
+   - `current-file.txt` - Active conversation file path
+   - `last-line-processed.txt` - Last processed line number
+
+2. **Metadata comments**: In conversation files
+   ```markdown
+   <!-- LAST_LINE: 936 -->
+   ```
+
+3. **Recovery logic**: When temp files are cleared
+   - Finds most recent conversation file
+   - Reads LAST_LINE from metadata
+   - Resumes from correct position
+
+This triple-redundancy ensures conversations are never duplicated or lost.
+
+## 🤝 Contributing
+
+Contributions welcome! Please:
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
+
+### Development Setup
+
+```bash
+# Clone the repo
+git clone https://github.com/mamd69/dialogue-reporter.git
+cd dialogue-reporter
+
+# Install dependencies
+npm install
+
+# Build
+npm run build
+
+# Test locally
+npm link
 dialogue-reporter install
 ```
 
----
+## 📄 License
 
-### Common Questions
+MIT © Dialogue Reporter Team
 
-**Q: Where are my conversation files?**
+## 🙏 Acknowledgments
 
-A: By default, in `docs/claude-conversations/` relative to your project root. Check with:
-```bash
-dialogue-reporter config show
-```
+- Built for [Claude Code](https://claude.ai/code)
+- Inspired by the need for conversation history
+- Uses Claude Code's powerful hook system
 
-**Q: How do I stop capturing conversations?**
+## 📚 Related Projects
 
-A: Either uninstall or disable the hooks:
-```bash
-dialogue-reporter uninstall
-# Or manually remove hooks from .claude/settings.json
-```
+- [Claude Code](https://claude.ai/code) - AI-powered coding assistant
+- [Claude Flow](https://github.com/ruvnet/claude-flow) - Multi-agent orchestration for Claude Code
 
-**Q: Can I exclude certain conversations?**
+## 📞 Support
 
-A: Not currently, but you can manually delete unwanted markdown files. Future versions will support filtering.
-
-**Q: What's the performance impact?**
-
-A: Minimal! Hooks run at session start/end only. SessionStart takes ~50ms to create the file header, SessionEnd takes ~100-200ms to append the transcript. No overhead during the actual conversation.
-
-**Q: Does it work offline?**
-
-A: Yes! All processing happens locally. No data is sent to external servers.
-
-**Q: Can I use it with other IDEs?**
-
-A: Currently only supports Claude Code (VS Code extension). Support for other IDEs is planned.
-
-## Performance
-
-Dialogue Reporter uses Claude Code Hooks for zero runtime overhead:
-
-- **Session Start:** ~50ms (creates file header once)
-- **During Conversation:** 0ms overhead (hooks don't run)
-- **Session End:** ~100-200ms (appends transcript once)
-- **Memory usage:** None (no background processes)
-
-Your conversations are completely unaffected. Hooks only run at session boundaries.
-
-## Technical Details
-
-### Hook Architecture
-
-Dialogue Reporter registers two bash scripts as Claude Code hooks:
-
-1. **`.claude/hooks/SessionStart.sh`**
-   - Triggered when Claude Code starts
-   - Creates conversation file with header
-   - Uses sequential numbering per day
-   - Stores filename in `/tmp/dialogue-reporter-current-file.txt`
-
-2. **`.claude/hooks/SessionEnd.sh`**
-   - Triggered on `/exit` or when Claude Code closes
-   - Receives full transcript via stdin as JSON
-   - Parses with `jq` and appends to file
-   - Cleans up temp tracking file
-
-### Hook Registration
-
-Hooks are registered in `.claude/settings.json`:
-```json
-{
-  "hooks": {
-    "SessionStart": [{
-      "hooks": [{
-        "type": "command",
-        "command": ".claude/hooks/SessionStart.sh"
-      }]
-    }],
-    "Stop": [{
-      "hooks": [{
-        "type": "command",
-        "command": ".claude/hooks/SessionEnd.sh"
-      }]
-    }]
-  }
-}
-```
-
-### Data Flow
-
-```
-Claude Code Start
-    ↓
-SessionStart Hook fires
-    ↓
-Create: claude-convo-2025-11-12-1.md (with header)
-    ↓
-[Conversation happens - no hooks]
-    ↓
-User types /exit
-    ↓
-SessionEnd Hook fires
-    ↓
-Receive transcript JSON via stdin
-    ↓
-Parse with jq → Append to file
-    ↓
-File complete with full conversation
-```
-
-## Requirements
-
-- Node.js 18.0.0 or higher
-- Claude Code (VS Code extension)
-- `jq` command-line tool (for JSON parsing in hooks)
-
-## Support
-
-- **Issues:** [GitHub Issues](https://github.com/your-org/dialogue-reporter/issues)
-- **Discussions:** [GitHub Discussions](https://github.com/your-org/dialogue-reporter/discussions)
-- **Documentation:** [Full Docs](https://github.com/your-org/dialogue-reporter/tree/main/docs)
-
-## Contributing
-
-Contributions welcome! See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
-
-## License
-
-MIT License - see [LICENSE](./LICENSE) for details.
-
-## Changelog
-
-### v1.0.0 (2025-11-07)
-- Initial release
-- Automatic conversation capture
-- Markdown formatting
-- One-command installation
-- MCP protocol integration
-- <5ms performance overhead
-- CLI tool for management
+- **Issues**: [GitHub Issues](https://github.com/mamd69/dialogue-reporter/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/mamd69/dialogue-reporter/discussions)
+- **Documentation**: [Full Docs](https://github.com/mamd69/dialogue-reporter/wiki)
 
 ---
 
-**Made with Claude Code** 🚀
-
-Start capturing your conversations today:
-```bash
-npm install -g dialogue-reporter
-dialogue-reporter install
-```
+Made with ❤️ for the Claude Code community

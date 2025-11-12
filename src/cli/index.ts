@@ -3,199 +3,97 @@
 /**
  * Dialogue Reporter CLI
  *
- * Command-line interface for managing Dialogue Reporter
+ * Command-line interface for installing and managing Dialogue Reporter hooks
  */
 
 import { Command } from 'commander';
 import * as fs from 'fs';
 import * as path from 'path';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-import { DEFAULT_CONFIG } from '../config/defaults';
 
-const execAsync = promisify(exec);
 const program = new Command();
 
 program
   .name('dialogue-reporter')
   .description('Automatically log Claude Code conversations to markdown')
-  .version('1.0.0');
+  .version('1.0.5');
 
 /**
  * Install command
  */
 program
   .command('install')
-  .description('Install and configure Dialogue Reporter')
-  .option('--manual', 'Show manual installation steps')
-  .option('--force', 'Force re-installation')
+  .description('Install Dialogue Reporter hooks in current project')
+  .option('--force', 'Overwrite existing hooks')
   .action(async (options) => {
     try {
-      if (options.manual) {
-        showManualInstructions();
-        return;
-      }
-
       console.log('📝 Installing Dialogue Reporter...\n');
 
-      // Step 1: Check Claude Flow
-      console.log('🔍 Checking for Claude Flow...');
-      const hasClaudeFlow = await checkClaudeFlow();
+      // Step 1: Verify we're in a project directory
+      const cwd = process.cwd();
+      console.log(`📁 Installing in: ${cwd}\n`);
 
-      if (!hasClaudeFlow) {
-        console.log('❌ Claude Flow not detected');
-        console.log('\nInstall Claude Flow first:');
-        console.log('  claude mcp add claude-flow npx claude-flow@alpha mcp start\n');
-        process.exit(1);
-      }
-
-      console.log('✅ Claude Flow detected\n');
-
-      // Step 2: Detect Claude Code project
-      console.log('🔍 Detecting Claude Code project...');
-      const isClaudeProject = await detectClaudeProject();
-
-      if (!isClaudeProject) {
-        console.log('⚠️  Not in a Claude Code project');
-        console.log('\nRun this command from your project directory.\n');
-        process.exit(1);
-      }
-
-      console.log('✅ Claude Code project detected\n');
-
-      // Step 3: Register MCP server
-      console.log('📝 Registering MCP server...');
-      await registerMCPServer(options.force);
-      console.log('✅ MCP server registered\n');
-
-      // Step 4: Create config
-      console.log('⚙️  Creating configuration...');
-      await createDefaultConfig();
-      console.log('✅ Configuration created\n');
-
-      // Step 5: Setup output directory
-      console.log('📁 Setting up output directory...');
-      await setupOutputDirectory();
-      console.log('✅ Output directory ready\n');
-
-      // Step 6: Verify
-      console.log('🔍 Running verification...');
-      const verified = await runVerification();
-
-      if (verified) {
-        console.log('✅ All checks passed\n');
-        console.log('🎉 Dialogue Reporter installed successfully!\n');
-        console.log(`Your conversations will be saved to: ${DEFAULT_CONFIG.outputDirectory}/\n`);
-        console.log('Next steps:');
-        console.log('  1. Restart Claude Code');
-        console.log('  2. Start a conversation');
-        console.log(`  3. Check ${DEFAULT_CONFIG.outputDirectory}/ for your markdown files\n`);
+      // Step 2: Create .claude/hooks directory
+      const hooksDir = path.join(cwd, '.claude', 'hooks');
+      if (!fs.existsSync(hooksDir)) {
+        fs.mkdirSync(hooksDir, { recursive: true });
+        console.log('✅ Created .claude/hooks directory');
       } else {
-        console.log('⚠️  Installation complete but verification failed');
-        console.log('Run "dialogue-reporter verify" to troubleshoot\n');
+        console.log('✅ .claude/hooks directory exists');
       }
-    } catch (error) {
-      console.error('❌ Installation failed:', error);
-      process.exit(1);
-    }
-  });
 
-/**
- * Verify command
- */
-program
-  .command('verify')
-  .description('Verify Dialogue Reporter installation')
-  .option('--verbose', 'Show detailed output')
-  .action(async (options) => {
-    console.log('🔍 Verifying Dialogue Reporter installation...\n');
+      // Step 3: Copy hook files
+      const templateDir = path.join(__dirname, '../../templates/hooks');
+      const hooks = ['Stop.sh', 'UserPromptSubmit.sh'];
 
-    const checks = [
-      { name: 'MCP server registered', fn: checkMCPRegistration },
-      { name: 'Configuration valid', fn: checkConfiguration },
-      { name: 'Output directory writable', fn: checkOutputDirectory },
-    ];
+      for (const hook of hooks) {
+        const sourcePath = path.join(templateDir, hook);
+        const destPath = path.join(hooksDir, hook);
 
-    let allPassed = true;
-
-    for (const check of checks) {
-      try {
-        const result = await check.fn();
-        if (result) {
-          console.log(`✅ ${check.name}`);
-        } else {
-          console.log(`❌ ${check.name}`);
-          allPassed = false;
+        if (fs.existsSync(destPath) && !options.force) {
+          console.log(`⚠️  ${hook} already exists (use --force to overwrite)`);
+          continue;
         }
-      } catch (error) {
-        console.log(`❌ ${check.name}: ${error}`);
-        allPassed = false;
+
+        fs.copyFileSync(sourcePath, destPath);
+        fs.chmodSync(destPath, 0o755); // Make executable
+        console.log(`✅ Installed ${hook}`);
       }
-    }
 
-    console.log();
+      // Step 4: Create config file
+      const configPath = path.join(cwd, '.dialogue-reporter.config');
+      if (!fs.existsSync(configPath) || options.force) {
+        const templateConfigPath = path.join(__dirname, '../../templates/config/default.config');
+        fs.copyFileSync(templateConfigPath, configPath);
+        console.log('✅ Created .dialogue-reporter.config');
+      } else {
+        console.log('✅ .dialogue-reporter.config already exists');
+      }
 
-    if (allPassed) {
-      console.log('✅ All checks passed\n');
-      process.exit(0);
-    } else {
-      console.log('❌ Some checks failed\n');
-      console.log('Troubleshooting:');
-      console.log('  1. Run "dialogue-reporter install --force"');
-      console.log('  2. Check logs with "dialogue-reporter logs"');
-      console.log('  3. See docs: https://github.com/dialogue-reporter/dialogue-reporter\n');
+      // Step 5: Create output directory
+      const config = loadConfig(configPath);
+      const outputDir = path.join(cwd, config.OUTPUT_DIR || 'docs/claude-conversations');
+      if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true });
+        console.log(`✅ Created ${outputDir}`);
+      } else {
+        console.log(`✅ ${outputDir} exists`);
+      }
+
+      console.log('\n🎉 Installation complete!\n');
+      console.log('Next steps:');
+      console.log('  1. Customize .dialogue-reporter.config if needed');
+      console.log('  2. Start a Claude Code conversation');
+      console.log(`  3. Your conversations will be saved to ${outputDir}/\n`);
+      console.log('Configuration:');
+      console.log('  - Edit .dialogue-reporter.config to customize:');
+      console.log('    - TIMEZONE: Your timezone (default: America/New_York)');
+      console.log('    - OUTPUT_DIR: Where to save conversations');
+      console.log('    - TOOL_DISPLAY: "detailed", "simple", or "hidden"\n');
+
+    } catch (error: any) {
+      console.error('❌ Installation failed:', error.message);
       process.exit(1);
     }
-  });
-
-/**
- * Configuration commands
- */
-const configCmd = program
-  .command('config')
-  .description('Manage configuration');
-
-configCmd
-  .command('show')
-  .description('Show current configuration')
-  .action(() => {
-    const configPath = '.dialogue-reporter.json';
-    if (fs.existsSync(configPath)) {
-      const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-      console.log(JSON.stringify(config, null, 2));
-    } else {
-      console.log('No configuration file found');
-      console.log('Run "dialogue-reporter install" to create one');
-    }
-  });
-
-configCmd
-  .command('reset')
-  .description('Reset to default configuration')
-  .action(async () => {
-    await createDefaultConfig();
-    console.log('✅ Configuration reset to defaults');
-  });
-
-/**
- * Status command
- */
-program
-  .command('status')
-  .description('Show Dialogue Reporter status')
-  .action(async () => {
-    console.log('Dialogue Reporter Status\n');
-
-    const mcp = await checkMCPRegistration();
-    console.log(`MCP Server:     ${mcp ? '✅ Registered' : '❌ Not registered'}`);
-
-    const config = await checkConfiguration();
-    console.log(`Configuration:  ${config ? '✅ Valid' : '❌ Invalid'}`);
-
-    const output = await checkOutputDirectory();
-    console.log(`Output Dir:     ${output ? '✅ Writable' : '❌ Not writable'}`);
-
-    console.log();
   });
 
 /**
@@ -203,21 +101,159 @@ program
  */
 program
   .command('uninstall')
-  .description('Uninstall Dialogue Reporter')
-  .action(async () => {
-    console.log('🗑️  Uninstalling Dialogue Reporter...\n');
-
+  .description('Remove Dialogue Reporter hooks')
+  .option('--keep-conversations', 'Keep conversation files')
+  .action(async (options) => {
     try {
-      // Remove MCP registration
-      console.log('📝 Removing MCP registration...');
-      await removeMCPServer();
-      console.log('✅ MCP registration removed\n');
+      console.log('🗑️  Uninstalling Dialogue Reporter...\n');
 
-      console.log('✅ Dialogue Reporter uninstalled\n');
-      console.log(`Note: Your conversation markdown files in ${DEFAULT_CONFIG.outputDirectory}/ were not deleted.\n`);
-    } catch (error) {
-      console.error('❌ Uninstall failed:', error);
+      const cwd = process.cwd();
+      const hooksDir = path.join(cwd, '.claude', 'hooks');
+      const hooks = ['Stop.sh', 'UserPromptSubmit.sh'];
+
+      for (const hook of hooks) {
+        const hookPath = path.join(hooksDir, hook);
+        if (fs.existsSync(hookPath)) {
+          fs.unlinkSync(hookPath);
+          console.log(`✅ Removed ${hook}`);
+        }
+      }
+
+      const configPath = path.join(cwd, '.dialogue-reporter.config');
+      if (fs.existsSync(configPath)) {
+        fs.unlinkSync(configPath);
+        console.log('✅ Removed .dialogue-reporter.config');
+      }
+
+      if (!options.keepConversations) {
+        const outputDir = path.join(cwd, 'docs/claude-conversations');
+        if (fs.existsSync(outputDir)) {
+          console.log(`\n⚠️  Conversation files in ${outputDir}/ were not deleted.`);
+          console.log('Delete manually if desired.\n');
+        }
+      }
+
+      console.log('\n✅ Dialogue Reporter uninstalled\n');
+
+    } catch (error: any) {
+      console.error('❌ Uninstall failed:', error.message);
       process.exit(1);
+    }
+  });
+
+/**
+ * Status command
+ */
+program
+  .command('status')
+  .description('Show Dialogue Reporter installation status')
+  .action(() => {
+    console.log('📊 Dialogue Reporter Status\n');
+
+    const cwd = process.cwd();
+    const hooksDir = path.join(cwd, '.claude', 'hooks');
+    const configPath = path.join(cwd, '.dialogue-reporter.config');
+
+    // Check hooks
+    const hooks = ['Stop.sh', 'UserPromptSubmit.sh'];
+    let hooksInstalled = 0;
+
+    for (const hook of hooks) {
+      const hookPath = path.join(hooksDir, hook);
+      const exists = fs.existsSync(hookPath);
+      console.log(`${exists ? '✅' : '❌'} ${hook}`);
+      if (exists) hooksInstalled++;
+    }
+
+    // Check config
+    const configExists = fs.existsSync(configPath);
+    console.log(`${configExists ? '✅' : '❌'} .dialogue-reporter.config`);
+
+    // Check output directory
+    if (configExists) {
+      const config = loadConfig(configPath);
+      const outputDir = path.join(cwd, config.OUTPUT_DIR || 'docs/claude-conversations');
+      const outputExists = fs.existsSync(outputDir);
+      console.log(`${outputExists ? '✅' : '❌'} Output directory: ${outputDir}`);
+
+      if (outputExists) {
+        const files = fs.readdirSync(outputDir).filter(f => f.endsWith('.md'));
+        console.log(`\n📝 ${files.length} conversation file(s) captured`);
+      }
+    }
+
+    console.log();
+
+    if (hooksInstalled === hooks.length && configExists) {
+      console.log('✅ Dialogue Reporter is installed and ready\n');
+    } else {
+      console.log('⚠️  Dialogue Reporter is not fully installed');
+      console.log('Run "dialogue-reporter install" to set up\n');
+    }
+  });
+
+/**
+ * Config command
+ */
+program
+  .command('config')
+  .description('Show current configuration')
+  .action(() => {
+    const configPath = path.join(process.cwd(), '.dialogue-reporter.config');
+
+    if (!fs.existsSync(configPath)) {
+      console.log('❌ No configuration file found');
+      console.log('Run "dialogue-reporter install" first\n');
+      return;
+    }
+
+    console.log('⚙️  Current Configuration:\n');
+    const config = fs.readFileSync(configPath, 'utf-8');
+    console.log(config);
+    console.log('\nEdit .dialogue-reporter.config to customize settings\n');
+  });
+
+/**
+ * Logs command
+ */
+program
+  .command('logs')
+  .description('Show recent hook logs for debugging')
+  .option('--stop', 'Show Stop hook logs')
+  .option('--user', 'Show UserPromptSubmit hook logs')
+  .action((options) => {
+    console.log('📋 Recent Hook Logs\n');
+
+    if (!options.stop && !options.user) {
+      // Show both by default
+      options.stop = true;
+      options.user = true;
+    }
+
+    if (options.stop) {
+      const stopLog = '/tmp/dialogue-reporter-debug.log';
+      console.log('=== Stop Hook ===');
+      if (fs.existsSync(stopLog)) {
+        const content = fs.readFileSync(stopLog, 'utf-8');
+        const lines = content.split('\n').slice(-50); // Last 50 lines
+        console.log(lines.join('\n'));
+      } else {
+        console.log('No logs found');
+      }
+      console.log();
+    }
+
+    if (options.user) {
+      const userLog = '/tmp/dialogue-reporter-userprompt-debug.log';
+      console.log('=== UserPromptSubmit Hook ===');
+      if (fs.existsSync(userLog)) {
+        const content = fs.readFileSync(userLog, 'utf-8');
+        const lines = content.split('\n').slice(-50); // Last 50 lines
+        console.log(lines.join('\n'));
+      } else {
+        console.log('No logs found');
+      }
+      console.log();
     }
   });
 
@@ -227,184 +263,26 @@ program.parse();
 // Helper Functions
 // ============================================================================
 
-async function checkClaudeFlow(): Promise<boolean> {
-  try {
-    const { stdout } = await execAsync('npx claude-flow@alpha --version');
-    return stdout.trim().length > 0;
-  } catch {
-    return false;
-  }
-}
-
-async function detectClaudeProject(): Promise<boolean> {
-  // Check for Claude Code indicators
-  return (
-    fs.existsSync('.claude') ||
-    fs.existsSync('.mcprc.json') ||
-    fs.existsSync('.mcp.json')
-  );
-}
-
-async function registerMCPServer(force: boolean = false): Promise<void> {
-  const mcprcPath = '.mcprc.json';
-  let mcprc: any = {};
-
-  if (fs.existsSync(mcprcPath)) {
-    mcprc = JSON.parse(fs.readFileSync(mcprcPath, 'utf-8'));
-  }
-
-  if (!mcprc.servers) {
-    mcprc.servers = {};
-  }
-
-  if (mcprc.servers['dialogue-reporter'] && !force) {
-    console.log('(already registered)');
-    return;
-  }
-
-  // Add server configuration
-  mcprc.servers['dialogue-reporter'] = {
-    command: 'node',
-    args: [path.resolve(__dirname, '../mcp/server.js')],
-    env: {
-      DIALOGUE_REPORTER_CONFIG: path.resolve(process.cwd(), '.dialogue-reporter.json'),
-    },
-  };
-
-  fs.writeFileSync(mcprcPath, JSON.stringify(mcprc, null, 2));
-}
-
-async function createDefaultConfig(): Promise<void> {
-  const configPath = '.dialogue-reporter.json';
-  fs.writeFileSync(configPath, JSON.stringify(DEFAULT_CONFIG, null, 2));
-}
-
-async function setupOutputDirectory(): Promise<void> {
-  const dir = DEFAULT_CONFIG.outputDirectory;
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-}
-
-async function runVerification(): Promise<boolean> {
-  try {
-    const mcp = await checkMCPRegistration();
-    const config = await checkConfiguration();
-    const output = await checkOutputDirectory();
-
-    return mcp && config && output;
-  } catch {
-    return false;
-  }
-}
-
-async function checkMCPRegistration(): Promise<boolean> {
-  const mcprcPath = '.mcprc.json';
-
-  if (!fs.existsSync(mcprcPath)) {
-    return false;
-  }
-
-  const mcprc = JSON.parse(fs.readFileSync(mcprcPath, 'utf-8'));
-  return !!mcprc.servers?.['dialogue-reporter'];
-}
-
-async function checkConfiguration(): Promise<boolean> {
-  const configPath = '.dialogue-reporter.json';
+function loadConfig(configPath: string): Record<string, string> {
+  const config: Record<string, string> = {};
 
   if (!fs.existsSync(configPath)) {
-    return false;
+    return config;
   }
 
-  try {
-    const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-    return !!(config.outputDirectory && config.filenamePattern);
-  } catch {
-    return false;
-  }
-}
+  const content = fs.readFileSync(configPath, 'utf-8');
+  const lines = content.split('\n');
 
-async function checkOutputDirectory(): Promise<boolean> {
-  const configPath = '.dialogue-reporter.json';
-
-  if (!fs.existsSync(configPath)) {
-    return false;
-  }
-
-  const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-  const dir = config.outputDirectory || './dialogue-reports';
-
-  try {
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed && !trimmed.startsWith('#')) {
+      const [key, ...valueParts] = trimmed.split('=');
+      if (key && valueParts.length > 0) {
+        const value = valueParts.join('=').replace(/^["']|["']$/g, '');
+        config[key.trim()] = value.trim();
+      }
     }
-
-    // Test write
-    const testFile = path.join(dir, '.write-test');
-    fs.writeFileSync(testFile, 'test');
-    fs.unlinkSync(testFile);
-
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function removeMCPServer(): Promise<void> {
-  const mcprcPath = '.mcprc.json';
-
-  if (!fs.existsSync(mcprcPath)) {
-    return;
   }
 
-  const mcprc = JSON.parse(fs.readFileSync(mcprcPath, 'utf-8'));
-
-  if (mcprc.servers?.['dialogue-reporter']) {
-    delete mcprc.servers['dialogue-reporter'];
-    fs.writeFileSync(mcprcPath, JSON.stringify(mcprc, null, 2));
-  }
-}
-
-function showManualInstructions(): void {
-  console.log(`
-Manual Installation Steps
-
-1. Add MCP Server Registration
-   Edit .mcprc.json and add:
-
-   "dialogue-reporter": {
-     "command": "node",
-     "args": ["./node_modules/dialogue-reporter/dist/mcp/server.js"],
-     "env": {
-       "DIALOGUE_REPORTER_CONFIG": "./.dialogue-reporter.json"
-     }
-   }
-
-2. Create Configuration File
-   Create .dialogue-reporter.json:
-
-   {
-     "outputDirectory": "./dialogue-reports",
-     "filenamePattern": "conversation-{timestamp}.md",
-     "formatting": {
-       "syntaxHighlighting": true,
-       "includeMetadata": true,
-       "includeTimestamps": true,
-       "includeToolCalls": true
-     },
-     "performance": {
-       "maxBufferSize": 100,
-       "flushInterval": 5000,
-       "asyncWrites": true
-     }
-   }
-
-3. Create Output Directory
-   mkdir -p ./dialogue-reports
-
-4. Restart Claude Code
-
-5. Verify
-   dialogue-reporter verify
-  `);
+  return config;
 }

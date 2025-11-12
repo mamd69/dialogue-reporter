@@ -10,30 +10,41 @@
 console.log(`
 ╔════════════════════════════════════════════════════════════╗
 ║                                                            ║
-║   📝 Dialogue Reporter v1.0.0 installed!                  ║
+║   📝 Dialogue Reporter installed successfully!            ║
 ║                                                            ║
 ╚════════════════════════════════════════════════════════════╝
 
 Thank you for installing Dialogue Reporter!
 
-Quick Start:
-  1. Navigate to your Claude Code project
-  2. Run: dialogue-reporter install
-  3. Restart Claude Code
-  4. Start a conversation
-  5. Check ./dialogue-reports/ for markdown files
+Dialogue Reporter automatically captures your Claude Code conversations
+and saves them as beautiful markdown files.
 
-Commands:
-  dialogue-reporter install   - Setup in current project
-  dialogue-reporter verify    - Test installation
-  dialogue-reporter status    - Check status
-  dialogue-reporter --help    - Show all commands
+Quick Start:
+  1. Navigate to your Claude Code project directory
+  2. Run: npx dialogue-reporter install
+  3. Start a conversation in Claude Code
+  4. Find your captured conversations in docs/claude-conversations/
+
+Available Commands:
+  npx dialogue-reporter install    - Install hooks in current project
+  npx dialogue-reporter status     - Check installation status
+  npx dialogue-reporter config     - View configuration
+  npx dialogue-reporter logs       - Debug hook execution
+  npx dialogue-reporter uninstall  - Remove from project
+  npx dialogue-reporter --help     - Show all commands
+
+Features:
+  ✅ Automatic conversation capture with Claude Code hooks
+  ✅ Configurable tool display (detailed/simple/hidden)
+  ✅ Timezone support for accurate timestamps
+  ✅ Persistent tracking survives restarts
+  ✅ Zero configuration required (works out of the box)
 
 Documentation:
-  https://github.com/dialogue-reporter/dialogue-reporter
+  https://github.com/mamd69/dialogue-reporter
 
 Issues or questions?
-  https://github.com/dialogue-reporter/dialogue-reporter/issues
+  https://github.com/mamd69/dialogue-reporter/issues
 
 Happy logging! 🚀
 `);

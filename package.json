@@ -1,6 +1,6 @@
 {
   "name": "dialogue-reporter",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Automatically log Claude Code conversations to beautiful markdown files",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -63,7 +63,6 @@
   "files": [
     "dist",
     "templates",
-    "scripts",
     "README.md",
     "LICENSE"
   ]
