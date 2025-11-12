@@ -10,25 +10,24 @@ INPUT=$(cat)
 TRANSCRIPT_PATH=$(echo "$INPUT" | jq -r '.transcript_path // ""')
 CONV_FILE=$(cat /tmp/dialogue-reporter/current-file.txt 2>/dev/null)
 LAST_LINE=$(cat /tmp/dialogue-reporter/last-line-processed.txt 2>/dev/null || echo "0")
-LAST_MSG_ID=$(cat /tmp/dialogue-reporter/last-message-id.txt 2>/dev/null || echo "")
 
 echo "TRANSCRIPT_PATH=$TRANSCRIPT_PATH" >> "$LOG_FILE"
 echo "CONV_FILE=$CONV_FILE" >> "$LOG_FILE"
 echo "LAST_LINE=$LAST_LINE" >> "$LOG_FILE"
-echo "LAST_MSG_ID=$LAST_MSG_ID" >> "$LOG_FILE"
+
+# Load configuration FIRST
+CONFIG_FILE=".dialogue-reporter.config"
+if [ -f "$CONFIG_FILE" ]; then
+  source "$CONFIG_FILE"
+fi
+export TZ="${TIMEZONE:-America/New_York}"
+TOOL_DISPLAY="${TOOL_DISPLAY:-detailed}"
+echo "TOOL_DISPLAY=$TOOL_DISPLAY (from config)" >> "$LOG_FILE"
 
 # If no conversation file, try to find the most recent one
 if [ -z "$CONV_FILE" ]; then
   echo "⚠️  No tracked conversation file. Looking for most recent file..." >> "$LOG_FILE"
   DIR="docs/claude-conversations"
-
-  # Load timezone and tool display config
-  CONFIG_FILE=".dialogue-reporter.config"
-  if [ -f "$CONFIG_FILE" ]; then
-    source "$CONFIG_FILE"
-  fi
-  export TZ="${TIMEZONE:-America/New_York}"
-  TOOL_DISPLAY="${TOOL_DISPLAY:-detailed}"
   DATE=$(date +%Y-%m-%d)
 
   # Find the most recent conversation file for today
@@ -41,7 +40,6 @@ if [ -z "$CONV_FILE" ]; then
     mkdir -p /tmp/dialogue-reporter
     echo "$CONV_FILE" > /tmp/dialogue-reporter/current-file.txt
     echo "$LAST_LINE" > /tmp/dialogue-reporter/last-line-processed.txt
-    echo "$LAST_MSG_ID" > /tmp/dialogue-reporter/last-message-id.txt
   else
     echo "❌ No conversation file found. Skipping." >> "$LOG_FILE"
     exit 0
@@ -65,33 +63,38 @@ fi
 # Temporary file to buffer assistant turn content
 BUFFER_FILE="/tmp/dialogue-reporter-buffer.txt"
 rm -f "$BUFFER_FILE"
+rm -f /tmp/dialogue-reporter-in-tools
 
 # Variables to track current message
 CURRENT_MSG_ID=""
-CURRENT_ROLE=""
 HAS_CONTENT=false
+IN_TOOLS=false
 
 # Function to format tool use
 format_tool_use() {
   local line="$1"
   local tool_name=$(echo "$line" | jq -r '.message.content[0].name // empty')
-  local tool_id=$(echo "$line" | jq -r '.message.content[0].id // empty')
 
   if [ -z "$tool_name" ]; then
+    echo "  No tool name found" >> "$LOG_FILE"
     return
   fi
 
+  echo "  Formatting tool: $tool_name (mode: $TOOL_DISPLAY)" >> "$LOG_FILE"
+
   # Start tool section if first tool
-  if [ ! -f "/tmp/dialogue-reporter-in-tools" ]; then
-    touch "/tmp/dialogue-reporter-in-tools"
+  if [ "$IN_TOOLS" = false ]; then
+    IN_TOOLS=true
     echo "" >> "$BUFFER_FILE"
     echo "---" >> "$BUFFER_FILE"
     echo "**Tools Used:**" >> "$BUFFER_FILE"
 
-    # If simple mode, close immediately
+    # If simple mode, close immediately and skip all details
     if [ "$TOOL_DISPLAY" = "simple" ]; then
       echo "---" >> "$BUFFER_FILE"
       echo "" >> "$BUFFER_FILE"
+      IN_TOOLS=false
+      echo "  Simple mode - closed tools section" >> "$LOG_FILE"
       return
     fi
 
@@ -109,7 +112,7 @@ format_tool_use() {
       local command=$(echo "$line" | jq -r '.message.content[0].input.command // empty')
       local description=$(echo "$line" | jq -r '.message.content[0].input.description // empty')
       echo "• **Bash** \`$command\`" >> "$BUFFER_FILE"
-      if [ -n "$description" ]; then
+      if [ -n "$description" ] && [ "$description" != "null" ]; then
         echo "  _${description}_" >> "$BUFFER_FILE"
       fi
       ;;
@@ -129,7 +132,7 @@ format_tool_use() {
       # Generic format for other tools
       echo "• **$tool_name**" >> "$BUFFER_FILE"
       # Try to show first parameter
-      local first_param=$(echo "$line" | jq -r '.message.content[0].input | to_entries[0] | "\(.key): \(.value)"' 2>/dev/null)
+      local first_param=$(echo "$line" | jq -r '.message.content[0].input | to_entries[0] | "\(.key): \(.value)"' 2>/dev/null | head -c 100)
       if [ -n "$first_param" ] && [ "$first_param" != "null" ]; then
         echo "  $first_param" >> "$BUFFER_FILE"
       fi
@@ -140,19 +143,20 @@ format_tool_use() {
 
 # Function to close tools section
 close_tools_section() {
-  if [ -f "/tmp/dialogue-reporter-in-tools" ]; then
+  if [ "$IN_TOOLS" = true ]; then
     # Only add closing separator in detailed mode (simple mode already closed)
     if [ "$TOOL_DISPLAY" = "detailed" ]; then
       echo "---" >> "$BUFFER_FILE"
       echo "" >> "$BUFFER_FILE"
     fi
-    rm -f "/tmp/dialogue-reporter-in-tools"
+    IN_TOOLS=false
+    echo "  Closed tools section" >> "$LOG_FILE"
   fi
 }
 
 # Function to flush buffer to conversation file
 flush_buffer() {
-  if [ "$HAS_CONTENT" = true ] && [ -f "$BUFFER_FILE" ]; then
+  if [ "$HAS_CONTENT" = true ] && [ -f "$BUFFER_FILE" ] && [ -s "$BUFFER_FILE" ]; then
     # Close any open tools section
     close_tools_section
 
@@ -164,16 +168,19 @@ flush_buffer() {
     # Append buffered content
     cat "$BUFFER_FILE" >> "$CONV_FILE"
 
-    echo "Flushed assistant turn to $CONV_FILE" >> "$LOG_FILE"
+    echo "✓ Flushed assistant turn ($(wc -l < "$BUFFER_FILE") lines) to $CONV_FILE" >> "$LOG_FILE"
 
     # Clear buffer
     rm -f "$BUFFER_FILE"
     HAS_CONTENT=false
+    IN_TOOLS=false
+  else
+    echo "  No content to flush (HAS_CONTENT=$HAS_CONTENT, buffer exists=$([ -f "$BUFFER_FILE" ] && echo yes || echo no))" >> "$LOG_FILE"
   fi
 }
 
-# Process new lines from JSONL transcript
-tail -n +$((LAST_LINE + 1)) "$TRANSCRIPT_PATH" | while IFS= read -r line; do
+# Process new lines from JSONL transcript using process substitution to avoid subshell
+while IFS= read -r line; do
   # Extract message info
   HAS_MESSAGE=$(echo "$line" | jq -r 'has("message")' 2>/dev/null)
 
@@ -183,28 +190,29 @@ tail -n +$((LAST_LINE + 1)) "$TRANSCRIPT_PATH" | while IFS= read -r line; do
 
   ROLE=$(echo "$line" | jq -r '.message.role // empty')
   MSG_ID=$(echo "$line" | jq -r '.message.id // empty')
-  STOP_REASON=$(echo "$line" | jq -r '.message.stop_reason // empty')
 
   # Only process assistant messages
   if [ "$ROLE" != "assistant" ]; then
     continue
   fi
 
+  echo "Processing message.id=$MSG_ID (current=$CURRENT_MSG_ID)" >> "$LOG_FILE"
+
   # Check if this is a new message (different message.id)
   if [ -n "$CURRENT_MSG_ID" ] && [ "$MSG_ID" != "$CURRENT_MSG_ID" ]; then
     # New message started - flush previous message
+    echo "→ New message detected, flushing previous" >> "$LOG_FILE"
     flush_buffer
     CURRENT_MSG_ID="$MSG_ID"
   elif [ -z "$CURRENT_MSG_ID" ]; then
     # First message
     CURRENT_MSG_ID="$MSG_ID"
+    echo "→ First message: $MSG_ID" >> "$LOG_FILE"
   fi
-
-  # Update current role tracking
-  CURRENT_ROLE="$ROLE"
 
   # Process content blocks
   CONTENT_TYPE=$(echo "$line" | jq -r '.message.content[0].type // empty')
+  echo "  Content type: $CONTENT_TYPE" >> "$LOG_FILE"
 
   case "$CONTENT_TYPE" in
     "text")
@@ -213,10 +221,11 @@ tail -n +$((LAST_LINE + 1)) "$TRANSCRIPT_PATH" | while IFS= read -r line; do
 
       # Extract and append text
       TEXT=$(echo "$line" | jq -r '.message.content[0].text // empty')
-      if [ -n "$TEXT" ]; then
+      if [ -n "$TEXT" ] && [ "$TEXT" != "null" ]; then
         echo "$TEXT" >> "$BUFFER_FILE"
         echo "" >> "$BUFFER_FILE"
         HAS_CONTENT=true
+        echo "  Added text (${#TEXT} chars)" >> "$LOG_FILE"
       fi
       ;;
 
@@ -228,12 +237,13 @@ tail -n +$((LAST_LINE + 1)) "$TRANSCRIPT_PATH" | while IFS= read -r line; do
 
     "thinking")
       # Optionally capture thinking (currently skipping)
-      # THINKING=$(echo "$line" | jq -r '.message.content[0].thinking // empty')
+      echo "  Skipping thinking content" >> "$LOG_FILE"
       ;;
   esac
-done
+done < <(tail -n +$((LAST_LINE + 1)) "$TRANSCRIPT_PATH")
 
 # Final flush for last message
+echo "→ Final flush" >> "$LOG_FILE"
 flush_buffer
 
 # Update last processed line
