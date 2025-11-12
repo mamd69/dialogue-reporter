@@ -11,12 +11,28 @@ PROMPT=$(echo "$INPUT" | jq -r '.prompt // ""')
 CONV_FILE=$(cat /tmp/dialogue-reporter/current-file.txt 2>/dev/null)
 
 echo "PROMPT length: ${#PROMPT}" >> "$LOG_FILE"
-echo "CONV_FILE: $CONV_FILE" >> "$LOG_FILE"
+echo "CONV_FILE (initial): $CONV_FILE" >> "$LOG_FILE"
 
+# If no conversation file tracked, try to recover it
 if [ -z "$CONV_FILE" ]; then
-  echo "⚠️  No conversation file found. SessionStart may not have run." >&2
-  echo "❌ No CONV_FILE, exiting" >> "$LOG_FILE"
-  exit 0
+  echo "⚠️  No tracked file, attempting recovery..." >> "$LOG_FILE"
+  DIR="docs/claude-conversations"
+  DATE=$(date +%Y-%m-%d)
+
+  # Find the most recent conversation file for today
+  RECENT_FILE=$(ls -t "$DIR/claude-convo-$DATE-"*.md 2>/dev/null | head -1)
+
+  if [ -n "$RECENT_FILE" ]; then
+    CONV_FILE="$RECENT_FILE"
+    # Restore tracking
+    mkdir -p /tmp/dialogue-reporter
+    echo "$CONV_FILE" > /tmp/dialogue-reporter/current-file.txt
+    echo "✓ Recovered CONV_FILE: $CONV_FILE" >> "$LOG_FILE"
+  else
+    echo "❌ No conversation file found. SessionStart may not have run." >&2
+    echo "❌ Recovery failed, no file found" >> "$LOG_FILE"
+    exit 0
+  fi
 fi
 
 if [ -n "$PROMPT" ]; then
