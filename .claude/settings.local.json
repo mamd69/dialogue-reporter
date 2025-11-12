@@ -3,7 +3,10 @@
     "allow": [
       "mcp__ruv-swarm",
       "mcp__claude-flow@alpha",
-      "mcp__flow-nexus"
+      "mcp__flow-nexus",
+      "Bash(TRANSCRIPT=\"/home/codespace/.claude/projects/-workspaces-dialogue-reporter/3df5ae42-ae15-48a3-a0d3-86924a76733d.jsonl\" echo \"Analyzing JSONL structure for assistant responses with tools...\" echo \"\" echo \"Example of assistant message with tool_use:\" grep '\"\"\"\"role\"\"\"\":\"\"\"\"assistant\"\"\"\"' \"$TRANSCRIPT\")",
+      "Bash(cat:*)",
+      "Bash(python3:*)"
     ],
     "deny": []
   }
