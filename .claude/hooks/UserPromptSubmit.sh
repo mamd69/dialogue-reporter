@@ -16,8 +16,17 @@ echo "CONV_FILE (initial): $CONV_FILE" >> "$LOG_FILE"
 # If no conversation file tracked, try to recover it
 if [ -z "$CONV_FILE" ]; then
   echo "⚠️  No tracked file, attempting recovery..." >> "$LOG_FILE"
-  DIR="docs/claude-conversations"
+
+  # Get cwd from hook input or use current directory
+  CWD=$(echo "$INPUT" | jq -r '.cwd // ""')
+  if [ -z "$CWD" ]; then
+    CWD=$(pwd)
+  fi
+
+  DIR="$CWD/docs/claude-conversations"
   DATE=$(date +%Y-%m-%d)
+
+  echo "Looking in: $DIR" >> "$LOG_FILE"
 
   # Find the most recent conversation file for today
   RECENT_FILE=$(ls -t "$DIR/claude-convo-$DATE-"*.md 2>/dev/null | head -1)
