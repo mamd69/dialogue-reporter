@@ -22,12 +22,13 @@ if [ -z "$CONV_FILE" ]; then
   echo "⚠️  No tracked conversation file. Looking for most recent file..." >> "$LOG_FILE"
   DIR="docs/claude-conversations"
 
-  # Load timezone config
+  # Load timezone and tool display config
   CONFIG_FILE=".dialogue-reporter.config"
   if [ -f "$CONFIG_FILE" ]; then
     source "$CONFIG_FILE"
   fi
   export TZ="${TIMEZONE:-America/New_York}"
+  TOOL_DISPLAY="${TOOL_DISPLAY:-detailed}"
   DATE=$(date +%Y-%m-%d)
 
   # Find the most recent conversation file for today
@@ -86,10 +87,23 @@ format_tool_use() {
     echo "" >> "$BUFFER_FILE"
     echo "---" >> "$BUFFER_FILE"
     echo "**Tools Used:**" >> "$BUFFER_FILE"
+
+    # If simple mode, close immediately
+    if [ "$TOOL_DISPLAY" = "simple" ]; then
+      echo "---" >> "$BUFFER_FILE"
+      echo "" >> "$BUFFER_FILE"
+      return
+    fi
+
     echo "" >> "$BUFFER_FILE"
   fi
 
-  # Extract tool-specific information
+  # Skip detailed formatting if not in detailed mode
+  if [ "$TOOL_DISPLAY" != "detailed" ]; then
+    return
+  fi
+
+  # Extract tool-specific information (detailed mode only)
   case "$tool_name" in
     "Bash")
       local command=$(echo "$line" | jq -r '.message.content[0].input.command // empty')
@@ -127,8 +141,11 @@ format_tool_use() {
 # Function to close tools section
 close_tools_section() {
   if [ -f "/tmp/dialogue-reporter-in-tools" ]; then
-    echo "---" >> "$BUFFER_FILE"
-    echo "" >> "$BUFFER_FILE"
+    # Only add closing separator in detailed mode (simple mode already closed)
+    if [ "$TOOL_DISPLAY" = "detailed" ]; then
+      echo "---" >> "$BUFFER_FILE"
+      echo "" >> "$BUFFER_FILE"
+    fi
     rm -f "/tmp/dialogue-reporter-in-tools"
   fi
 }
@@ -175,12 +192,15 @@ tail -n +$((LAST_LINE + 1)) "$TRANSCRIPT_PATH" | while IFS= read -r line; do
 
   # Check if this is a new message (different message.id)
   if [ -n "$CURRENT_MSG_ID" ] && [ "$MSG_ID" != "$CURRENT_MSG_ID" ]; then
-    # Flush previous message
+    # New message started - flush previous message
     flush_buffer
+    CURRENT_MSG_ID="$MSG_ID"
+  elif [ -z "$CURRENT_MSG_ID" ]; then
+    # First message
+    CURRENT_MSG_ID="$MSG_ID"
   fi
 
-  # Update current message tracking
-  CURRENT_MSG_ID="$MSG_ID"
+  # Update current role tracking
   CURRENT_ROLE="$ROLE"
 
   # Process content blocks
@@ -211,17 +231,9 @@ tail -n +$((LAST_LINE + 1)) "$TRANSCRIPT_PATH" | while IFS= read -r line; do
       # THINKING=$(echo "$line" | jq -r '.message.content[0].thinking // empty')
       ;;
   esac
-
-  # Check if turn is complete
-  if [ "$STOP_REASON" != "tool_use" ] && [ "$STOP_REASON" != "null" ]; then
-    # Turn complete - flush buffer
-    flush_buffer
-    # Save this as the last completed message
-    echo "$MSG_ID" > /tmp/dialogue-reporter/last-message-id.txt
-  fi
 done
 
-# Final flush in case of incomplete turn
+# Final flush for last message
 flush_buffer
 
 # Update last processed line

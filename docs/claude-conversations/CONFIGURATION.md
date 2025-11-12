@@ -24,6 +24,11 @@ OUTPUT_DIR="docs/claude-conversations"
 # File naming pattern
 # Default: claude-convo-{date}-{number}.md
 FILENAME_PATTERN="claude-convo-{date}-{number}.md"
+
+# Tool display mode
+# Options: "detailed", "simple", "hidden"
+# Default: detailed
+TOOL_DISPLAY="detailed"
 ```
 
 ## Timezone Configuration
@@ -84,6 +89,76 @@ FILENAME_PATTERN="conversation-{date}-{number}.md"
 **Available variables:**
 - `{date}` - Current date in YYYY-MM-DD format
 - `{number}` - Sequential number for files on the same day
+
+## Tool Display Configuration
+
+Control how tool uses are shown in conversation files.
+
+### Options
+
+**`TOOL_DISPLAY="detailed"`** (default)
+- Shows full tool information with parameters
+- Example:
+  ```markdown
+  ---
+  **Tools Used:**
+
+  • **Bash** `chmod +x script.sh`
+    _Make script executable_
+
+  • **Read** `config.json`
+
+  • **TodoWrite** (5 tasks)
+  ---
+  ```
+
+**`TOOL_DISPLAY="simple"`**
+- Shows only that tools were used, without details
+- Example:
+  ```markdown
+  ---
+  **Tools Used:**
+  ---
+  ```
+
+**`TOOL_DISPLAY="hidden"`**
+- Doesn't show tool indicators at all
+- Clean conversation flow with only text
+
+### Configuration
+
+In `.dialogue-reporter.config`:
+
+```bash
+# Show detailed tool information (default)
+TOOL_DISPLAY="detailed"
+
+# Or use simple mode
+TOOL_DISPLAY="simple"
+
+# Or hide tools completely
+TOOL_DISPLAY="hidden"
+```
+
+### Use Cases
+
+**Detailed mode** - Best for:
+- Learning what Claude Code did
+- Debugging and troubleshooting
+- Documentation and training
+- Understanding tool usage patterns
+
+**Simple mode** - Best for:
+- Clean conversation logs
+- Focus on dialogue, not implementation
+- Minimal distraction
+- Quick readability
+
+**Hidden mode** - Best for:
+- Pure conversation capture
+- No technical details wanted
+- Sharing with non-technical users
+- Minimalist preference
 
 ## Example Configurations
 
