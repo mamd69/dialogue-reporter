@@ -5,6 +5,21 @@
 [![npm version](https://img.shields.io/npm/v/dialogue-reporter.svg)](https://www.npmjs.com/package/dialogue-reporter)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+## 🚀 Quick Start
+
+```bash
+# Navigate to your Claude Code project
+cd your-project
+
+# Install (takes 5 seconds)
+npx dialogue-reporter install
+
+# That's it! Start a Claude Code conversation
+# Your conversations are automatically saved to docs/claude-conversations/
+```
+
+**Updating or reinstalling?** Use `npx dialogue-reporter install --force`
+
 ## ✨ Features
 
 - **🤖 Automatic Capture** - Works seamlessly with Claude Code hooks
@@ -17,39 +32,45 @@
 
 ## 📦 Installation
 
-### Quick Install
+### Quick Install (Recommended)
 
 ```bash
-# Install the package globally or in your project
-npm install -g dialogue-reporter
+# Navigate to your Claude Code project
+cd your-project-directory
 
-# Or use with npx (no installation needed)
+# Install hooks (no package installation needed)
 npx dialogue-reporter install
 ```
 
-### Step-by-Step
+That's it! Your conversations will automatically be saved to `docs/claude-conversations/`
 
-1. **Install the package** (if not using npx):
-   ```bash
-   npm install -g dialogue-reporter
-   ```
+### Reinstall / Update Hooks
 
-2. **Navigate to your Claude Code project**:
-   ```bash
-   cd your-project-directory
-   ```
+If you've already installed dialogue-reporter and need to update or reinstall:
 
-3. **Run the installer**:
-   ```bash
-   dialogue-reporter install
-   ```
+```bash
+# Update hooks without uninstalling first
+npx dialogue-reporter install --force
+```
 
-   Or with npx:
-   ```bash
-   npx dialogue-reporter install
-   ```
+The `--force` flag:
+- ✅ Overwrites existing hook files with latest versions
+- ✅ Updates `.claude/settings.json` to register hooks
+- ✅ Refreshes configuration files
+- ✅ No need to uninstall first
 
-4. **Start using Claude Code** - Your conversations will automatically be saved to `docs/claude-conversations/`
+### Global Installation (Optional)
+
+If you prefer not to use `npx`:
+
+```bash
+# Install globally
+npm install -g dialogue-reporter
+
+# Then run from anywhere
+cd your-project-directory
+dialogue-reporter install
+```
 
 ## 🎯 How It Works
 
@@ -141,11 +162,25 @@ FILENAME_PATTERN="chat-{date}-{number}.md"
 Install hooks in the current project:
 
 ```bash
+# First time installation
 dialogue-reporter install
 
-# Force reinstall (overwrites existing hooks)
+# Reinstall/update (recommended for updates)
 dialogue-reporter install --force
 ```
+
+**What happens during installation:**
+- ✅ Creates `.claude/hooks/` directory
+- ✅ Installs SessionStart.sh, Stop.sh, and UserPromptSubmit.sh hooks
+- ✅ Creates `.dialogue-reporter.config` file
+- ✅ **Automatically registers hooks in `.claude/settings.json`**
+- ✅ Creates output directory (`docs/claude-conversations/`)
+
+**The `--force` flag:**
+- Overwrites existing hooks with latest versions
+- Updates `.claude/settings.json` to ensure hooks are registered
+- Refreshes configuration files
+- **Use this when updating or if hooks aren't working**
 
 ### Status
 
@@ -295,34 +330,65 @@ Each session:
 
 ### Conversations Not Being Captured
 
+If your conversations aren't being saved, follow these steps:
+
 1. **Check installation status**:
    ```bash
    dialogue-reporter status
    ```
 
-2. **Check logs for errors**:
+   You should see all green checkmarks (✅). If not, proceed to step 4.
+
+2. **Verify hooks are registered in settings.json**:
+   ```bash
+   cat .claude/settings.json | grep -A 5 "hooks"
+   ```
+
+   You should see entries for `SessionStart`, `UserPromptSubmit`, and `Stop` hooks.
+
+   If hooks are missing from settings.json, reinstall with `--force` (step 4).
+
+3. **Check logs for errors**:
    ```bash
    dialogue-reporter logs
    ```
 
-3. **Verify hooks are executable**:
+4. **Reinstall with --force** (fixes most issues):
    ```bash
-   ls -la .claude/hooks/
-   # Should show: -rwxr-xr-x for Stop.sh and UserPromptSubmit.sh
+   npx dialogue-reporter install --force
    ```
 
-4. **Reinstall if needed**:
-   ```bash
-   dialogue-reporter install --force
-   ```
+   This will:
+   - Overwrite hook files
+   - **Re-register hooks in `.claude/settings.json`**
+   - Refresh configuration
+
+5. **Restart Claude Code**:
+
+   Hooks only activate in new sessions. Exit and restart Claude Code after reinstalling.
+
+### Hooks Not Working After Install
+
+**Common Issue (v1.1.1 and earlier):** Hooks were copied but not registered in `.claude/settings.json`.
+
+**Solution:** Update to v1.1.2+ which automatically registers hooks:
+
+```bash
+npx dialogue-reporter@latest install --force
+```
+
+**Verify it worked:**
+```bash
+dialogue-reporter status
+# Should show all ✅ green checkmarks
+```
 
 ### Duplicate Content in Conversations
 
 This was a bug in earlier versions. Update to v1.0.5+:
 
 ```bash
-npm install -g dialogue-reporter@latest
-dialogue-reporter install --force
+npx dialogue-reporter@latest install --force
 ```
 
 ### Missing Messages
