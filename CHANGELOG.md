@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - No race conditions or cross-session interference
 - Added `SessionStart.sh` hook to CLI installation
 - Added comprehensive test suite for concurrent session support
+- **GitHub Actions Automation** - Automated npm publishing workflow
+  - Automatic publishing on version tags (v*.*.*)
+  - Manual release workflow via GitHub UI
+  - Continuous integration testing on Node 18, 20, 22
+  - Publishing guide in docs/PUBLISHING.md
 
 ### Changed
 - **BREAKING**: Temp file location changed from `/tmp/dialogue-reporter/` to `/tmp/dialogue-reporter/{session-id}/`
