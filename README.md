@@ -381,7 +381,27 @@ npx dialogue-reporter@latest install --force
 ```bash
 dialogue-reporter status
 # Should show all ✅ green checkmarks
+
+# Or use the built-in verification script:
+bash .claude/hooks/verify-dialogue-reporter.sh
 ```
+
+**Advanced Troubleshooting:**
+
+If hooks still aren't working, use the installation script directly:
+
+```bash
+# Manually install and register hooks
+bash .claude/hooks/install-dialogue-reporter.sh
+
+# Verify registration
+bash .claude/hooks/verify-dialogue-reporter.sh
+
+# If needed, recover session state
+bash .claude/hooks/recover-dialogue-reporter.sh
+```
+
+See [Hook System Documentation](.claude/hooks/DIALOGUE-REPORTER-README.md) for detailed troubleshooting.
 
 ### Duplicate Content in Conversations
 
@@ -413,9 +433,32 @@ If some messages aren't being captured:
 Make hooks executable:
 
 ```bash
+chmod +x .claude/hooks/SessionStart.sh
 chmod +x .claude/hooks/Stop.sh
 chmod +x .claude/hooks/UserPromptSubmit.sh
 ```
+
+### Manual Installation & Verification
+
+If the npm-based installation isn't working, you can use the hook management scripts directly:
+
+```bash
+# Install and register hooks in settings.json
+bash .claude/hooks/install-dialogue-reporter.sh
+
+# Verify installation and configuration
+bash .claude/hooks/verify-dialogue-reporter.sh
+
+# Recover session state after /tmp cleanup
+bash .claude/hooks/recover-dialogue-reporter.sh
+```
+
+**Requirements:**
+- `jq` must be installed (for JSON manipulation)
+- `.claude/hooks/` directory must exist
+- Write permissions in project directory
+
+For detailed documentation, see [Hook System Documentation](.claude/hooks/DIALOGUE-REPORTER-README.md).
 
 ## 🏗️ Architecture
 
