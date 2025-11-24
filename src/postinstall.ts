@@ -7,6 +7,12 @@
  * Provides helpful guidance for setup
  */
 
+// Skip if in CI/development environment
+const isCI = process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true';
+if (isCI) {
+  process.exit(0);
+}
+
 console.log(`
 ╔════════════════════════════════════════════════════════════╗
 ║                                                            ║
