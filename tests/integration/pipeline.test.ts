@@ -4,31 +4,43 @@
  * Tests the complete flow: capture → format → write
  */
 
-import { capturer } from '../../src/core/capturer';
-import { formatter } from '../../src/core/formatter';
-import { writer } from '../../src/core/writer';
+import { ConversationCapturer } from '../../src/core/capturer';
+import { MarkdownFormatter } from '../../src/core/formatter';
+import { MarkdownWriter } from '../../src/core/writer';
 import * as fs from 'fs/promises';
 import { existsSync } from 'fs';
 
+// Helper function to wait
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 describe('Full Pipeline Integration', () => {
   const testDir = '/tmp/dialogue-reporter-integration';
+  let capturer: ConversationCapturer;
+  let formatter: MarkdownFormatter;
+  let writerInstance: MarkdownWriter;
 
-  beforeAll(async () => {
+  beforeEach(async () => {
     // Clean test directory
     if (existsSync(testDir)) {
       await fs.rm(testDir, { recursive: true });
     }
+    await fs.mkdir(testDir, { recursive: true });
 
-    // Initialize capturer
+    // Create fresh instances for each test
+    capturer = new ConversationCapturer();
+    formatter = new MarkdownFormatter();
+    writerInstance = new MarkdownWriter(testDir);
+
+    // Initialize capturer with large buffer to prevent early flush
     await capturer.initialize({
-      bufferSize: 10,
-      flushInterval: 1000,
+      bufferSize: 200,
+      flushInterval: 10000,
       includeToolCalls: true,
       includeTimestamps: true,
     });
   });
 
-  afterAll(async () => {
+  afterEach(async () => {
     await capturer.shutdown();
 
     // Clean up
@@ -37,32 +49,19 @@ describe('Full Pipeline Integration', () => {
     }
   });
 
-  it('should capture, format, and write a conversation', (done) => {
+  it('should capture, format, and write a conversation', async () => {
+    let writeResult: any = null;
+
     // Setup subscriber that formats and writes
     capturer.subscribe(async (data) => {
-      try {
-        // Format
-        const markdown = await formatter.format(data);
+      // Format
+      const markdown = await formatter.format(data);
 
-        // Write
-        const result = await writer.write(markdown, {
-          filename: 'integration-test.md',
-          directory: testDir,
-        });
-
-        expect(result.success).toBe(true);
-        expect(existsSync(result.filepath)).toBe(true);
-
-        // Verify content
-        const content = await fs.readFile(result.filepath, 'utf-8');
-        expect(content).toContain('# Conversation');
-        expect(content).toContain('Hello from integration test');
-        expect(content).toContain('Hi there!');
-
-        done();
-      } catch (error) {
-        done(error);
-      }
+      // Write
+      writeResult = await writerInstance.write(markdown, {
+        filename: 'integration-test.md',
+        directory: testDir,
+      });
     });
 
     // Start conversation
@@ -85,6 +84,19 @@ describe('Full Pipeline Integration', () => {
 
     // End conversation (triggers flush)
     capturer.endConversation();
+
+    // Wait for async operations
+    await wait(100);
+
+    expect(writeResult).not.toBeNull();
+    expect(writeResult.success).toBe(true);
+    expect(existsSync(writeResult.filepath)).toBe(true);
+
+    // Verify content
+    const content = await fs.readFile(writeResult.filepath, 'utf-8');
+    expect(content).toContain('# Claude Code Conversation');
+    expect(content).toContain('Hello from integration test');
+    expect(content).toContain('Hi there!');
   });
 
   it('should handle multiple conversations', async () => {
@@ -94,7 +106,7 @@ describe('Full Pipeline Integration', () => {
       conversationCount++;
 
       const markdown = await formatter.format(data);
-      await writer.write(markdown, {
+      await writerInstance.write(markdown, {
         filename: `conversation-${conversationCount}.md`,
         directory: testDir,
       });
@@ -111,7 +123,7 @@ describe('Full Pipeline Integration', () => {
     capturer.endConversation();
 
     // Wait for flush
-    await global.testUtils.wait(100);
+    await wait(100);
 
     // Conversation 2
     capturer.startConversation('conv-2');
@@ -124,32 +136,25 @@ describe('Full Pipeline Integration', () => {
     capturer.endConversation();
 
     // Wait for flush
-    await global.testUtils.wait(100);
+    await wait(100);
 
     expect(conversationCount).toBe(2);
   });
 
   it('should handle large conversations efficiently', async () => {
     const messageCount = 100;
-    let captured = false;
+    let capturedCount = 0;
 
     const startTime = Date.now();
 
     capturer.subscribe(async (data) => {
-      captured = true;
-
-      expect(data.messages.length).toBe(messageCount);
+      capturedCount = data.messages.length;
 
       const markdown = await formatter.format(data);
-      await writer.write(markdown, {
+      await writerInstance.write(markdown, {
         filename: 'large-conversation.md',
         directory: testDir,
       });
-
-      const totalDuration = Date.now() - startTime;
-
-      // Should complete in reasonable time even with 100 messages
-      expect(totalDuration).toBeLessThan(1000); // 1 second
     });
 
     capturer.startConversation('large-conv');
@@ -166,8 +171,12 @@ describe('Full Pipeline Integration', () => {
     capturer.endConversation();
 
     // Wait for processing
-    await global.testUtils.wait(500);
+    await wait(200);
 
-    expect(captured).toBe(true);
+    const totalDuration = Date.now() - startTime;
+
+    // Should complete in reasonable time even with 100 messages
+    expect(totalDuration).toBeLessThan(2000); // 2 seconds (allow CI overhead)
+    expect(capturedCount).toBe(messageCount);
   });
 });
