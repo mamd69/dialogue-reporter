@@ -944,9 +944,356 @@ Co-Authored-By: Claude <noreply@anthropic.com>"`
 Committed! The dialogue-reporter is working perfectly now - no more duplication, capturing both Human and Assistant messages correctly, and the metadata recovery is functioning as intended.
 
 
-<!-- LAST_LINE: 1021 -->
 
 ## Human
 
 now organize this project and make it easy for someone else to install into any claude code project via npm or npx.  update the README with instrutions of how to install and how to configure and how to use.
 
+
+## Assistant
+
+
+---
+**Tools Used:**
+
+• **TodoWrite** (7 tasks)
+
+---
+
+
+---
+**Tools Used:**
+
+• **Read** `/workspaces/dialogue-reporter/package.json`
+
+---
+
+
+---
+**Tools Used:**
+
+• **Bash** `find src -type f -name "*.ts" 2>/dev/null | head -20`
+  _Check existing TypeScript files_
+
+---
+
+
+---
+**Tools Used:**
+
+• **Read** `/workspaces/dialogue-reporter/src/cli/index.ts`
+
+• **Read** `/workspaces/dialogue-reporter/src/postinstall.ts`
+
+• **Bash** `ls -la templates/ 2>/dev/null || echo "No templates directory"`
+  _Check for templates directory_
+
+---
+
+
+---
+**Tools Used:**
+
+• **TodoWrite** (7 tasks)
+
+---
+
+
+---
+**Tools Used:**
+
+• **Bash** `mkdir -p templates/hooks templates/config && echo "Created templates directory structure"`
+  _Create templates directory_
+
+• **Bash** `cp .claude/hooks/Stop.sh templates/hooks/ && cp .claude/hooks/UserPromptSubmit.sh templates/hooks/ && echo "Copied hooks to templates"`
+  _Copy hooks to templates_
+
+• **Bash** `cp .dialogue-reporter.config templates/config/default.config && echo "Copied config template"`
+  _Copy config template_
+
+---
+
+
+---
+**Tools Used:**
+
+• **Write** `/workspaces/dialogue-reporter/src/cli/index.ts`
+
+---
+
+
+---
+**Tools Used:**
+
+• **TodoWrite** (7 tasks)
+
+---
+
+
+---
+**Tools Used:**
+
+• **Write** `/workspaces/dialogue-reporter/src/postinstall.ts`
+
+---
+
+
+---
+**Tools Used:**
+
+• **Edit** `/workspaces/dialogue-reporter/package.json`
+
+• **Edit** `/workspaces/dialogue-reporter/package.json`
+
+---
+
+
+---
+**Tools Used:**
+
+• **TodoWrite** (7 tasks)
+
+---
+
+
+---
+**Tools Used:**
+
+• **Write** `/workspaces/dialogue-reporter/README.md`
+
+---
+
+
+---
+**Tools Used:**
+
+• **Read** `/workspaces/dialogue-reporter/README.md`
+
+---
+
+
+---
+**Tools Used:**
+
+• **Write** `/workspaces/dialogue-reporter/README.md`
+
+---
+
+
+---
+**Tools Used:**
+
+• **TodoWrite** (7 tasks)
+
+---
+
+
+---
+**Tools Used:**
+
+• **Bash** `npm run build`
+  _Build TypeScript project_
+
+---
+
+
+---
+**Tools Used:**
+
+• **Bash** `ls -la dist/cli/ && echo "---" && ls -la templates/`
+  _Verify build output and templates_
+
+---
+
+
+---
+**Tools Used:**
+
+• **Bash** `ls -la templates/hooks/ && echo "---" && ls -la templates/config/`
+  _Verify template contents_
+
+---
+
+
+---
+**Tools Used:**
+
+• **TodoWrite** (7 tasks)
+
+---
+
+
+---
+**Tools Used:**
+
+• **Bash** `git add -A && git commit -m "feat: Make dialogue-reporter installable via npm/npx
+
+Major refactor to enable easy installation in any Claude Code project:
+
+INSTALLATION SYSTEM:
+- Created templates/ directory with hooks and config
+- Rewrote CLI to install hooks instead of MCP server
+- Added 'dialogue-reporter install' command
+- Copies Stop.sh and UserPromptSubmit.sh to .claude/hooks/
+- Creates .dialogue-reporter.config automatically
+- Makes hooks executable (chmod +x)
+
+NEW CLI COMMANDS:
+- install [--force] - Install hooks in current project
+- status - Check installation and show conversation count
+- config - View current configuration
+- logs [--stop] [--user] - Debug hook execution
+- uninstall [--keep-conversations] - Remove hooks
+
+UPDATED DOCUMENTATION:
+- Comprehensive README with:
+  - Quick installation guide (npm/npx)
+  - Configuration examples (TOOL_DISPLAY modes)
+  - Troubleshooting section
+  - Architecture diagrams
+  - Usage examples
+- Updated postinstall message with clearer instructions
+
+PACKAGE DISTRIBUTION:
+- Version bumped to 1.0.5
+- Updated package.json to include templates/
+- Removed unused MCP server dependencies
+- Simplified installation flow
+
+FIXES:
+- Stop.sh: LAST_LINE metadata recovery (prevents duplication)
+- UserPromptSubmit.sh: Recovery logic for /tmp cleanup
+- Hidden tool display mode working correctly
+
+USAGE:
+  # Install globally
+  npm install -g dialogue-reporter
+  dialogue-reporter install
+
+  # Or use directly with npx
+  npx dialogue-reporter install
+
+Closes duplication issues, adds proper npm distribution support.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>"`
+  _Commit npm distribution changes_
+
+---
+
+
+---
+**Tools Used:**
+
+• **TodoWrite** (7 tasks)
+
+---
+
+Perfect! I've completely reorganized the project for npm distribution. Here's what was done:
+
+## 📦 What Changed
+
+### 1. **Templates Directory Created**
+- `templates/hooks/` - Contains Stop.sh and UserPromptSubmit.sh
+- `templates/config/` - Contains default.config
+- These are copied to projects during installation
+
+### 2. **CLI Completely Rewritten** (src/cli/index.ts)
+Simple, focused commands for installation:
+
+```bash
+# Install hooks in any project
+npx dialogue-reporter install
+
+# Check status
+npx dialogue-reporter status
+
+# View config
+npx dialogue-reporter config
+
+# Debug with logs
+npx dialogue-reporter logs
+
+# Uninstall
+npx dialogue-reporter uninstall
+```
+
+### 3. **Installation Flow**
+```bash
+# From any Claude Code project:
+npx dialogue-reporter install
+```
+
+This automatically:
+- Creates `.claude/hooks/` directory
+- Copies Stop.sh and UserPromptSubmit.sh
+- Makes them executable
+- Creates `.dialogue-reporter.config`
+- Creates output directory
+- Verifies installation
+
+### 4. **Comprehensive README**
+Includes:
+- ✅ Quick installation guide
+- ✅ Configuration examples (all 3 TOOL_DISPLAY modes)
+- ✅ CLI command reference
+- ✅ Architecture diagrams
+- ✅ Troubleshooting section
+- ✅ Usage examples
+
+### 5. **Package Configuration**
+- Version: 1.0.5
+- Includes templates/ in distribution
+- Simplified dependencies
+- Ready for `npm publish`
+
+## 🚀 How Users Install It
+
+### Option 1: NPX (No Installation)
+```bash
+cd my-claude-project
+npx dialogue-reporter install
+```
+
+### Option 2: Global Install
+```bash
+npm install -g dialogue-reporter
+cd my-claude-project
+dialogue-reporter install
+```
+
+## ✨ What It Does
+
+The installer:
+1. Copies working hooks to `.claude/hooks/`
+2. Creates `.dialogue-reporter.config` with defaults
+3. Creates `docs/claude-conversations/` directory
+4. Makes hooks executable
+5. Shows next steps
+
+Then conversations are automatically captured!
+
+## 📊 Project Structure
+
+```
+dialogue-reporter/
+├── templates/
+│   ├── hooks/
+│   │   ├── Stop.sh              ← Working hook
+│   │   └── UserPromptSubmit.sh  ← Working hook
+│   └── config/
+│       └── default.config       ← Default settings
+├── src/
+│   ├── cli/
+│   │   └── index.ts             ← New simple CLI
+│   └── postinstall.ts           ← Helpful message
+├── dist/                        ← Compiled code
+├── package.json                 ← v1.0.5, includes templates
+└── README.md                    ← Comprehensive docs
+```
+
+The project is now ready for anyone to install via npm/npx and start capturing conversations immediately!
+
+
+<!-- LAST_LINE: 1102 -->

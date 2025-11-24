@@ -13,6 +13,7 @@
 - **🔄 Persistent** - Survives restarts and /tmp cleanups
 - **🚀 Zero Config** - Works out of the box with sensible defaults
 - **🐛 Debug-Friendly** - Built-in logging for troubleshooting
+- **🔀 Concurrent Sessions** - Supports multiple Claude Code sessions simultaneously
 
 ## 📦 Installation
 
@@ -54,15 +55,17 @@ npx dialogue-reporter install
 
 Dialogue Reporter uses **Claude Code hooks** to capture conversations:
 
-1. **UserPromptSubmit Hook** - Captures your messages when you submit them
-2. **Stop Hook** - Captures Claude's responses when they complete
-3. **Metadata Persistence** - Stores position markers in conversation files to survive restarts
+1. **SessionStart Hook** - Creates a new conversation file when a session starts
+2. **UserPromptSubmit Hook** - Captures your messages when you submit them
+3. **Stop Hook** - Captures Claude's responses when they complete
+4. **Metadata Persistence** - Stores position markers in conversation files to survive restarts
 
 The hooks are bash scripts that:
 - Parse the JSONL transcript file
 - Extract Human and Assistant turns
 - Format them as markdown
 - Save incrementally to prevent data loss
+- **Isolate sessions** - Each session has its own temp directory to support concurrent usage
 
 ## ⚙️ Configuration
 
@@ -268,6 +271,26 @@ I'll help you fix that bug. Let me start by reading the error logs.
 I found the issue in src/index.ts:42...
 ```
 
+### Concurrent Sessions
+
+Run multiple Claude Code sessions simultaneously without conflicts:
+
+```bash
+# Terminal 1
+cd my-project
+claude  # Start first session
+
+# Terminal 2 (same project)
+cd my-project
+claude  # Start second session - works independently!
+```
+
+Each session:
+- Creates its own conversation file (e.g., `claude-convo-2025-11-24-1.md`, `claude-convo-2025-11-24-2.md`)
+- Uses session-specific temp storage (`/tmp/dialogue-reporter/{session-id}/`)
+- Tracks its own progress independently
+- No cross-session interference or race conditions
+
 ## 🔧 Troubleshooting
 
 ### Conversations Not Being Captured
@@ -365,9 +388,11 @@ Claude Code Conversation
 
 Dialogue Reporter uses multiple persistence layers:
 
-1. **Temp files**: `/tmp/dialogue-reporter/`
+1. **Session-specific temp files**: `/tmp/dialogue-reporter/{session-id}/`
    - `current-file.txt` - Active conversation file path
    - `last-line-processed.txt` - Last processed line number
+   - `session-id.txt` - Session identifier
+   - `transcript-path.txt` - JSONL transcript location
 
 2. **Metadata comments**: In conversation files
    ```markdown
@@ -375,11 +400,12 @@ Dialogue Reporter uses multiple persistence layers:
    ```
 
 3. **Recovery logic**: When temp files are cleared
+   - Extracts session ID from transcript path
    - Finds most recent conversation file
    - Reads LAST_LINE from metadata
    - Resumes from correct position
 
-This triple-redundancy ensures conversations are never duplicated or lost.
+This triple-redundancy with session isolation ensures conversations are never duplicated or lost, even with concurrent sessions.
 
 ## 🤝 Contributing
 

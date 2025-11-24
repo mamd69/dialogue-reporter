@@ -8,8 +8,19 @@ echo "=== Stop Hook Called at $(date) ===" >> "$LOG_FILE"
 # Read hook input
 INPUT=$(cat)
 TRANSCRIPT_PATH=$(echo "$INPUT" | jq -r '.transcript_path // ""')
-CONV_FILE=$(cat /tmp/dialogue-reporter/current-file.txt 2>/dev/null)
-LAST_LINE=$(cat /tmp/dialogue-reporter/last-line-processed.txt 2>/dev/null || echo "0")
+
+# Extract session ID from transcript path (format: /path/.../SESSION_ID.jsonl)
+SESSION_ID=""
+if [ -n "$TRANSCRIPT_PATH" ]; then
+  SESSION_ID=$(basename "$TRANSCRIPT_PATH" .jsonl)
+fi
+
+echo "SESSION_ID=$SESSION_ID" >> "$LOG_FILE"
+
+# Use session-specific directory for temp files
+SESSION_DIR="/tmp/dialogue-reporter/$SESSION_ID"
+CONV_FILE=$(cat "$SESSION_DIR/current-file.txt" 2>/dev/null)
+LAST_LINE=$(cat "$SESSION_DIR/last-line-processed.txt" 2>/dev/null || echo "0")
 
 # Validate LAST_LINE is a number, default to 0 if corrupted
 if ! [[ "$LAST_LINE" =~ ^[0-9]+$ ]]; then
@@ -30,20 +41,31 @@ export TZ="${TIMEZONE:-America/New_York}"
 TOOL_DISPLAY="${TOOL_DISPLAY:-detailed}"
 echo "TOOL_DISPLAY=$TOOL_DISPLAY (from config)" >> "$LOG_FILE"
 
-# If no conversation file, try to find the most recent one
+# If no conversation file, try to find the one matching this session
 if [ -z "$CONV_FILE" ]; then
-  echo "⚠️  No tracked conversation file. Looking for most recent file..." >> "$LOG_FILE"
+  echo "⚠️  No tracked conversation file. Looking for session file..." >> "$LOG_FILE"
+  echo "Searching for SESSION_ID: $SESSION_ID" >> "$LOG_FILE"
   DIR="docs/claude-conversations"
 
-  # Find the most recent conversation file (any date)
-  RECENT_FILE=$(ls -t "$DIR"/claude-convo-*.md 2>/dev/null | head -1)
+  # Find conversation file that matches THIS session ID
+  # Search for "**Session:** $SESSION_ID" in all conversation files
+  RECENT_FILE=""
+  if [ -n "$SESSION_ID" ]; then
+    RECENT_FILE=$(grep -l "^\*\*Session:\*\* $SESSION_ID" "$DIR"/claude-convo-*.md 2>/dev/null | head -1)
+  fi
+
+  # Fallback: if no session ID match found, try most recent file (legacy behavior)
+  if [ -z "$RECENT_FILE" ]; then
+    echo "⚠️  No file found for session $SESSION_ID, falling back to most recent" >> "$LOG_FILE"
+    RECENT_FILE=$(ls -t "$DIR"/claude-convo-*.md 2>/dev/null | head -1)
+  fi
 
   if [ -n "$RECENT_FILE" ]; then
     CONV_FILE="$RECENT_FILE"
-    echo "✓ Found recent file: $CONV_FILE" >> "$LOG_FILE"
-    # Initialize temp tracking
-    mkdir -p /tmp/dialogue-reporter
-    echo "$CONV_FILE" > /tmp/dialogue-reporter/current-file.txt
+    echo "✓ Found file: $CONV_FILE" >> "$LOG_FILE"
+    # Initialize temp tracking in session-specific directory
+    mkdir -p "$SESSION_DIR"
+    echo "$CONV_FILE" > "$SESSION_DIR/current-file.txt"
 
     # Try to recover LAST_LINE from conversation file metadata comment
     RECOVERED_LINE=$(grep "^<!-- LAST_LINE: " "$CONV_FILE" 2>/dev/null | tail -1 | sed 's/<!-- LAST_LINE: \([0-9]*\) -->/\1/')
@@ -57,7 +79,7 @@ if [ -z "$CONV_FILE" ]; then
       echo "⚠️  No LAST_LINE metadata found, starting from 0" >> "$LOG_FILE"
     fi
 
-    echo "$LAST_LINE" > /tmp/dialogue-reporter/last-line-processed.txt
+    echo "$LAST_LINE" > "$SESSION_DIR/last-line-processed.txt"
   else
     echo "❌ No conversation file found. Skipping." >> "$LOG_FILE"
     exit 0
@@ -76,8 +98,8 @@ if [ "$LAST_LINE" = "0" ] && [ -n "$CONV_FILE" ] && [ -f "$CONV_FILE" ]; then
     LAST_LINE=$RECOVERED_LINE
     echo "✓ Recovered LAST_LINE from metadata: $LAST_LINE" >> "$LOG_FILE"
     # Update temp file
-    mkdir -p /tmp/dialogue-reporter
-    echo "$LAST_LINE" > /tmp/dialogue-reporter/last-line-processed.txt
+    mkdir -p "$SESSION_DIR"
+    echo "$LAST_LINE" > "$SESSION_DIR/last-line-processed.txt"
   else
     echo "⚠️  No LAST_LINE metadata found in $CONV_FILE" >> "$LOG_FILE"
   fi
@@ -280,8 +302,8 @@ else
   echo "  No content to write (HAS_CONTENT=$HAS_CONTENT, buffer exists=$([ -f "$BUFFER_FILE" ] && echo yes || echo no))" >> "$LOG_FILE"
 fi
 
-# Update last processed line in temp file
-echo "$TOTAL_LINES" > /tmp/dialogue-reporter/last-line-processed.txt
+# Update last processed line in session-specific temp file
+echo "$TOTAL_LINES" > "$SESSION_DIR/last-line-processed.txt"
 
 # IMPORTANT: Also write LAST_LINE as metadata comment in conversation file
 # This allows recovery if /tmp files are cleared

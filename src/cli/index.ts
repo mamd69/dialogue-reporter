@@ -15,7 +15,7 @@ const program = new Command();
 program
   .name('dialogue-reporter')
   .description('Automatically log Claude Code conversations to markdown')
-  .version('1.0.5');
+  .version('1.1.0');
 
 /**
  * Install command
@@ -43,7 +43,7 @@ program
 
       // Step 3: Copy hook files
       const templateDir = path.join(__dirname, '../../templates/hooks');
-      const hooks = ['Stop.sh', 'UserPromptSubmit.sh'];
+      const hooks = ['SessionStart.sh', 'Stop.sh', 'UserPromptSubmit.sh'];
 
       for (const hook of hooks) {
         const sourcePath = path.join(templateDir, hook);
@@ -109,7 +109,7 @@ program
 
       const cwd = process.cwd();
       const hooksDir = path.join(cwd, '.claude', 'hooks');
-      const hooks = ['Stop.sh', 'UserPromptSubmit.sh'];
+      const hooks = ['SessionStart.sh', 'Stop.sh', 'UserPromptSubmit.sh'];
 
       for (const hook of hooks) {
         const hookPath = path.join(hooksDir, hook);
@@ -155,7 +155,7 @@ program
     const configPath = path.join(cwd, '.dialogue-reporter.config');
 
     // Check hooks
-    const hooks = ['Stop.sh', 'UserPromptSubmit.sh'];
+    const hooks = ['SessionStart.sh', 'Stop.sh', 'UserPromptSubmit.sh'];
     let hooksInstalled = 0;
 
     for (const hook of hooks) {

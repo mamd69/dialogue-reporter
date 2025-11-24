@@ -4,13 +4,24 @@ This directory contains automatically generated logs of all Claude Code conversa
 
 ## 📋 About
 
-Dialogue Reporter automatically captures every conversation you have with Claude Code and saves it as a beautifully formatted markdown file. This helps you:
+Dialogue Reporter automatically captures every conversation you have with Claude Code and saves it as a beautifully formatted markdown file. **Each Claude Code session creates a separate markdown file**, making it easy to organize and reference individual conversations.
+
+This helps you:
 
 - **Document your development process** for future reference
 - **Share conversations** with team members or for learning
 - **Track your AI-assisted coding sessions** over time
 - **Review complex problem-solving discussions** later
 - **Create training materials** from real examples
+
+### 🔄 Multi-Session Support
+
+**Each Claude Code session gets its own file!** When you start a new Claude Code session, Dialogue Reporter automatically creates a new numbered file for that day. This means:
+
+- **Session isolation** - Each conversation is independent and easy to find
+- **Concurrent sessions** - Multiple Claude sessions can run simultaneously without conflicts
+- **Better organization** - Separate files for different tasks/topics on the same day
+- **Clean history** - No mixing of unrelated conversations
 
 ## 📁 File Naming Convention
 
