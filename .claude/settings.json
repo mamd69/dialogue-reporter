@@ -99,16 +99,8 @@
       {
         "hooks": [
           {
-            "type": "command",
-            "command": ".claude/hooks/Stop.sh"
-          },
-          {
-            "type": "command",
-            "command": "npx claude-flow@alpha hooks session-end --generate-summary true --persist-state true --export-metrics true"
-          },
-          {
-            "type": "command",
-            "command": ".claude/hooks/SessionEnd.sh"
+            "type": "script",
+            "script": ".claude/hooks/Stop.sh"
           }
         ]
       }
@@ -117,8 +109,8 @@
       {
         "hooks": [
           {
-            "type": "command",
-            "command": ".claude/hooks/SessionStart.sh"
+            "type": "script",
+            "script": ".claude/hooks/SessionStart.sh"
           }
         ]
       }
@@ -127,15 +119,18 @@
       {
         "hooks": [
           {
-            "type": "command",
-            "command": ".claude/hooks/UserPromptSubmit.sh"
+            "type": "script",
+            "script": ".claude/hooks/UserPromptSubmit.sh"
           }
         ]
       }
     ]
   },
   "includeCoAuthoredBy": true,
-  "enabledMcpjsonServers": ["claude-flow", "ruv-swarm"],
+  "enabledMcpjsonServers": [
+    "claude-flow",
+    "ruv-swarm"
+  ],
   "statusLine": {
     "type": "command",
     "command": ".claude/statusline-command.sh"

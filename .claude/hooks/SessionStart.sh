@@ -1,6 +1,16 @@
 #!/usr/bin/env bash
 # Session Start Hook - Initialize new conversation file
 
+# Self-check: Verify this hook is registered in settings.json
+if [ -f ".claude/settings.json" ]; then
+    if ! grep -q "SessionStart.sh" .claude/settings.json 2>/dev/null; then
+        echo "⚠️  SessionStart hook not registered in .claude/settings.json" >&2
+        echo "   Run: bash .claude/hooks/install-dialogue-reporter.sh" >&2
+        # Exit silently to not break Claude Code
+        exit 0
+    fi
+fi
+
 # Read hook input to get session info
 INPUT=$(cat)
 SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // "unknown"')

@@ -1,6 +1,16 @@
 #!/usr/bin/env bash
 # Stop Hook - Capture complete assistant turns with detailed tool information
 
+# Self-check: Verify this hook is registered in settings.json
+if [ -f ".claude/settings.json" ]; then
+    if ! grep -q "Stop.sh" .claude/settings.json 2>/dev/null; then
+        echo "⚠️  Stop hook not registered in .claude/settings.json" >&2
+        echo "   Run: bash .claude/hooks/install-dialogue-reporter.sh" >&2
+        # Exit silently to not break Claude Code
+        exit 0
+    fi
+fi
+
 # Debug log file
 LOG_FILE="/tmp/dialogue-reporter-debug.log"
 echo "=== Stop Hook Called at $(date) ===" >> "$LOG_FILE"
