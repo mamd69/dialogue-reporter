@@ -5,6 +5,34 @@ All notable changes to dialogue-reporter will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.5] - 2025-11-24
+
+### Fixed
+- CI and publish workflows now fail on test/lint/typecheck errors (removed `continue-on-error`)
+- Removed circular self-dependency from package.json devDependencies
+
+### Changed
+- Tests are now required to pass before publishing (no silent failures)
+
+## [1.1.4] - 2025-11-24
+
+### Fixed
+- Removed `--provenance` flag from npm publish (not supported for private repositories)
+- Fixed test expectations to match actual formatter output (`# Claude Code Conversation`, `## Human`)
+- Fixed test isolation issues in pipeline tests (using fresh instances per test)
+
+## [1.1.3] - 2025-11-24
+
+### Added
+- Hook verification system with self-check in SessionStart, Stop, and UserPromptSubmit hooks
+- Installation script (`install-dialogue-reporter.sh`) with prepend logic for safe integration
+- Verification script (`verify-dialogue-reporter.sh`) for health checks
+- Recovery script (`recover-dialogue-reporter.sh`) for post-/tmp-cleanup recovery
+
+### Fixed
+- Hooks now properly register in `.claude/settings.json` with prepend logic
+- Safe integration with claude-flow (prepends dialogue-reporter hooks instead of replacing)
+
 ## [1.1.2] - 2025-11-24
 
 ### Fixed
