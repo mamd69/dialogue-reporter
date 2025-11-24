@@ -5,6 +5,26 @@ All notable changes to dialogue-reporter will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2] - 2025-11-24
+
+### Fixed
+- **CRITICAL FIX**: Install command now properly updates `.claude/settings.json` to register hooks
+  - Previously hooks were copied but not activated in settings
+  - Users had to manually edit settings.json for hooks to work
+  - Now works immediately after installation with no manual configuration
+- Improved hook detection to avoid duplicates in settings.json
+- Added automatic backup of existing settings.json if invalid JSON detected
+
+### Changed
+- Install command now outputs confirmation when settings.json is updated
+- Better error handling for settings.json modifications
+
+## [1.1.1] - 2025-11-24
+
+### Fixed
+- Skip postinstall script in CI environments to prevent error messages during CI builds
+- Postinstall welcome message still displays for real user installations
+
 ## [1.1.0] - 2025-11-24
 
 ### Added

@@ -69,7 +69,17 @@ program
         console.log('✅ .dialogue-reporter.config already exists');
       }
 
-      // Step 5: Create output directory
+      // Step 5: Update .claude/settings.json to register hooks
+      const settingsPath = path.join(cwd, '.claude', 'settings.json');
+      try {
+        updateClaudeSettings(settingsPath, hooksDir);
+        console.log('✅ Updated .claude/settings.json with hook registrations');
+      } catch (error: any) {
+        console.log('⚠️  Could not update .claude/settings.json:', error.message);
+        console.log('   You may need to manually add hooks to settings.json');
+      }
+
+      // Step 6: Create output directory
       const config = loadConfig(configPath);
       const outputDir = path.join(cwd, config.OUTPUT_DIR || 'docs/claude-conversations');
       if (!fs.existsSync(outputDir)) {
@@ -262,6 +272,92 @@ program.parse();
 // ============================================================================
 // Helper Functions
 // ============================================================================
+
+/**
+ * Update Claude settings.json to register dialogue-reporter hooks
+ */
+function updateClaudeSettings(settingsPath: string, hooksDir: string): void {
+  // Create default settings structure if file doesn't exist
+  let settings: any = {
+    hooks: {
+      SessionStart: [],
+      UserPromptSubmit: [],
+      Stop: []
+    }
+  };
+
+  // Read existing settings if file exists
+  if (fs.existsSync(settingsPath)) {
+    try {
+      const content = fs.readFileSync(settingsPath, 'utf-8');
+      settings = JSON.parse(content);
+    } catch (error) {
+      console.log('⚠️  Existing settings.json is invalid, creating backup');
+      fs.copyFileSync(settingsPath, `${settingsPath}.backup`);
+    }
+  }
+
+  // Ensure hooks object exists
+  if (!settings.hooks) {
+    settings.hooks = {};
+  }
+
+  // Helper to check if hook already exists
+  const hasHook = (hookArray: any[], command: string): boolean => {
+    if (!Array.isArray(hookArray)) return false;
+    return hookArray.some(h =>
+      h.hooks?.some((hook: any) => hook.command?.includes(command))
+    );
+  };
+
+  // Add SessionStart hook if not present
+  if (!settings.hooks.SessionStart) {
+    settings.hooks.SessionStart = [];
+  }
+  if (!hasHook(settings.hooks.SessionStart, 'SessionStart.sh')) {
+    settings.hooks.SessionStart.push({
+      hooks: [{
+        type: 'command',
+        command: '.claude/hooks/SessionStart.sh'
+      }]
+    });
+  }
+
+  // Add UserPromptSubmit hook if not present
+  if (!settings.hooks.UserPromptSubmit) {
+    settings.hooks.UserPromptSubmit = [];
+  }
+  if (!hasHook(settings.hooks.UserPromptSubmit, 'UserPromptSubmit.sh')) {
+    settings.hooks.UserPromptSubmit.push({
+      hooks: [{
+        type: 'command',
+        command: '.claude/hooks/UserPromptSubmit.sh'
+      }]
+    });
+  }
+
+  // Add Stop hook if not present
+  if (!settings.hooks.Stop) {
+    settings.hooks.Stop = [];
+  }
+  if (!hasHook(settings.hooks.Stop, 'Stop.sh')) {
+    settings.hooks.Stop.push({
+      hooks: [{
+        type: 'command',
+        command: '.claude/hooks/Stop.sh'
+      }]
+    });
+  }
+
+  // Ensure .claude directory exists
+  const claudeDir = path.dirname(settingsPath);
+  if (!fs.existsSync(claudeDir)) {
+    fs.mkdirSync(claudeDir, { recursive: true });
+  }
+
+  // Write updated settings
+  fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\n', 'utf-8');
+}
 
 function loadConfig(configPath: string): Record<string, string> {
   const config: Record<string, string> = {};
