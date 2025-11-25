@@ -45,32 +45,26 @@ echo "Registering hooks in settings.json..."
 # This PREPENDS dialogue-reporter hooks, preserving any existing hooks
 
 # Process each hook type with jq
-# For SessionStart
+# Hook objects go directly in the event array per Claude Code docs:
+# https://docs.claude.com/en/docs/claude-code/hooks
+
+# For SessionStart - add hook directly to array (not nested under "hooks")
 jq '.hooks = (.hooks // {}) |
   .hooks.SessionStart = (
-    if (.hooks.SessionStart | length) > 0 then
-      [{"hooks": ([{"type": "script", "script": ".claude/hooks/SessionStart.sh"}] + (.hooks.SessionStart[0].hooks | map(select(.script != ".claude/hooks/SessionStart.sh"))))}]
-    else
-      [{"hooks": [{"type": "script", "script": ".claude/hooks/SessionStart.sh"}]}]
-    end
+    [{"type": "command", "command": ".claude/hooks/SessionStart.sh"}] +
+    ((.hooks.SessionStart // []) | map(select(.command != ".claude/hooks/SessionStart.sh" and (.hooks == null))))
   )' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
 
 # For UserPromptSubmit
 jq '.hooks.UserPromptSubmit = (
-    if (.hooks.UserPromptSubmit | length) > 0 then
-      [{"hooks": ([{"type": "script", "script": ".claude/hooks/UserPromptSubmit.sh"}] + (.hooks.UserPromptSubmit[0].hooks | map(select(.script != ".claude/hooks/UserPromptSubmit.sh"))))}]
-    else
-      [{"hooks": [{"type": "script", "script": ".claude/hooks/UserPromptSubmit.sh"}]}]
-    end
+    [{"type": "command", "command": ".claude/hooks/UserPromptSubmit.sh"}] +
+    ((.hooks.UserPromptSubmit // []) | map(select(.command != ".claude/hooks/UserPromptSubmit.sh" and (.hooks == null))))
   )' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
 
 # For Stop
 jq '.hooks.Stop = (
-    if (.hooks.Stop | length) > 0 then
-      [{"hooks": ([{"type": "script", "script": ".claude/hooks/Stop.sh"}] + (.hooks.Stop[0].hooks | map(select(.script != ".claude/hooks/Stop.sh"))))}]
-    else
-      [{"hooks": [{"type": "script", "script": ".claude/hooks/Stop.sh"}]}]
-    end
+    [{"type": "command", "command": ".claude/hooks/Stop.sh"}] +
+    ((.hooks.Stop // []) | map(select(.command != ".claude/hooks/Stop.sh" and (.hooks == null))))
   )' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
 
 echo "✅ SessionStart hook registered"

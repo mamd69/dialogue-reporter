@@ -275,8 +275,11 @@ program.parse();
 
 /**
  * Update Claude settings.json to register dialogue-reporter hooks
+ *
+ * Hook objects go directly in the event array per Claude Code docs:
+ * https://docs.claude.com/en/docs/claude-code/hooks
  */
-function updateClaudeSettings(settingsPath: string, hooksDir: string): void {
+function updateClaudeSettings(settingsPath: string, _hooksDir: string): void {
   // Create default settings structure if file doesn't exist
   let settings: any = {
     hooks: {
@@ -302,13 +305,43 @@ function updateClaudeSettings(settingsPath: string, hooksDir: string): void {
     settings.hooks = {};
   }
 
-  // Helper to check if hook already exists
+  // Helper to check if hook already exists (handles both old nested and new flat structure)
   const hasHook = (hookArray: any[], command: string): boolean => {
     if (!Array.isArray(hookArray)) return false;
     return hookArray.some(h =>
+      // Check new flat structure
+      h.command?.includes(command) ||
+      // Check old nested structure for backwards compatibility
       h.hooks?.some((hook: any) => hook.command?.includes(command))
     );
   };
+
+  // Helper to migrate old nested structure to flat structure
+  const migrateHookArray = (hookArray: any[]): any[] => {
+    if (!Array.isArray(hookArray)) return [];
+    const migrated: any[] = [];
+    for (const item of hookArray) {
+      if (item.hooks && Array.isArray(item.hooks)) {
+        // Old nested structure - flatten it
+        migrated.push(...item.hooks);
+      } else if (item.type && item.command) {
+        // Already flat structure
+        migrated.push(item);
+      }
+    }
+    return migrated;
+  };
+
+  // Migrate existing hooks to flat structure
+  if (settings.hooks.SessionStart) {
+    settings.hooks.SessionStart = migrateHookArray(settings.hooks.SessionStart);
+  }
+  if (settings.hooks.UserPromptSubmit) {
+    settings.hooks.UserPromptSubmit = migrateHookArray(settings.hooks.UserPromptSubmit);
+  }
+  if (settings.hooks.Stop) {
+    settings.hooks.Stop = migrateHookArray(settings.hooks.Stop);
+  }
 
   // Add SessionStart hook if not present
   if (!settings.hooks.SessionStart) {
@@ -316,10 +349,8 @@ function updateClaudeSettings(settingsPath: string, hooksDir: string): void {
   }
   if (!hasHook(settings.hooks.SessionStart, 'SessionStart.sh')) {
     settings.hooks.SessionStart.push({
-      hooks: [{
-        type: 'command',
-        command: '.claude/hooks/SessionStart.sh'
-      }]
+      type: 'command',
+      command: '.claude/hooks/SessionStart.sh'
     });
   }
 
@@ -329,10 +360,8 @@ function updateClaudeSettings(settingsPath: string, hooksDir: string): void {
   }
   if (!hasHook(settings.hooks.UserPromptSubmit, 'UserPromptSubmit.sh')) {
     settings.hooks.UserPromptSubmit.push({
-      hooks: [{
-        type: 'command',
-        command: '.claude/hooks/UserPromptSubmit.sh'
-      }]
+      type: 'command',
+      command: '.claude/hooks/UserPromptSubmit.sh'
     });
   }
 
@@ -342,10 +371,8 @@ function updateClaudeSettings(settingsPath: string, hooksDir: string): void {
   }
   if (!hasHook(settings.hooks.Stop, 'Stop.sh')) {
     settings.hooks.Stop.push({
-      hooks: [{
-        type: 'command',
-        command: '.claude/hooks/Stop.sh'
-      }]
+      type: 'command',
+      command: '.claude/hooks/Stop.sh'
     });
   }
 
