@@ -45,26 +45,27 @@ echo "Registering hooks in settings.json..."
 # This PREPENDS dialogue-reporter hooks, preserving any existing hooks
 
 # Process each hook type with jq
-# Hook objects go directly in the event array per Claude Code docs:
-# https://docs.claude.com/en/docs/claude-code/hooks
+# Per Claude Code docs, hooks use nested structure:
+# "EventName": [{ "hooks": [{ "type": "command", "command": "..." }] }]
+# https://code.claude.com/docs/en/hooks
 
-# For SessionStart - add hook directly to array (not nested under "hooks")
+# For SessionStart - nested hooks structure
 jq '.hooks = (.hooks // {}) |
   .hooks.SessionStart = (
-    [{"type": "command", "command": ".claude/hooks/SessionStart.sh"}] +
-    ((.hooks.SessionStart // []) | map(select(.command != ".claude/hooks/SessionStart.sh" and (.hooks == null))))
+    [{"hooks": [{"type": "command", "command": ".claude/hooks/SessionStart.sh"}]}] +
+    ((.hooks.SessionStart // []) | map(select(.hooks[0].command != ".claude/hooks/SessionStart.sh")))
   )' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
 
 # For UserPromptSubmit
 jq '.hooks.UserPromptSubmit = (
-    [{"type": "command", "command": ".claude/hooks/UserPromptSubmit.sh"}] +
-    ((.hooks.UserPromptSubmit // []) | map(select(.command != ".claude/hooks/UserPromptSubmit.sh" and (.hooks == null))))
+    [{"hooks": [{"type": "command", "command": ".claude/hooks/UserPromptSubmit.sh"}]}] +
+    ((.hooks.UserPromptSubmit // []) | map(select(.hooks[0].command != ".claude/hooks/UserPromptSubmit.sh")))
   )' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
 
 # For Stop
 jq '.hooks.Stop = (
-    [{"type": "command", "command": ".claude/hooks/Stop.sh"}] +
-    ((.hooks.Stop // []) | map(select(.command != ".claude/hooks/Stop.sh" and (.hooks == null))))
+    [{"hooks": [{"type": "command", "command": ".claude/hooks/Stop.sh"}]}] +
+    ((.hooks.Stop // []) | map(select(.hooks[0].command != ".claude/hooks/Stop.sh")))
   )' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
 
 echo "✅ SessionStart hook registered"

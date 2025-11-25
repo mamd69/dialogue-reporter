@@ -97,20 +97,32 @@
     ],
     "Stop": [
       {
-        "type": "command",
-        "command": ".claude/hooks/Stop.sh"
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/Stop.sh"
+          }
+        ]
       }
     ],
     "SessionStart": [
       {
-        "type": "command",
-        "command": ".claude/hooks/SessionStart.sh"
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/SessionStart.sh"
+          }
+        ]
       }
     ],
     "UserPromptSubmit": [
       {
-        "type": "command",
-        "command": ".claude/hooks/UserPromptSubmit.sh"
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/UserPromptSubmit.sh"
+          }
+        ]
       }
     ]
   },
