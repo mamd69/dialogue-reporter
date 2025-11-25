@@ -315,6 +315,7 @@ function updateClaudeSettings(settingsPath: string, _hooksDir: string): void {
   };
 
   // Add SessionStart hook if not present (nested structure per Claude Code docs)
+  // Use $CLAUDE_PROJECT_DIR for reliable path resolution per docs
   if (!settings.hooks.SessionStart) {
     settings.hooks.SessionStart = [];
   }
@@ -322,7 +323,7 @@ function updateClaudeSettings(settingsPath: string, _hooksDir: string): void {
     settings.hooks.SessionStart.push({
       hooks: [{
         type: 'command',
-        command: '.claude/hooks/SessionStart.sh'
+        command: '"$CLAUDE_PROJECT_DIR"/.claude/hooks/SessionStart.sh'
       }]
     });
   }
@@ -335,7 +336,7 @@ function updateClaudeSettings(settingsPath: string, _hooksDir: string): void {
     settings.hooks.UserPromptSubmit.push({
       hooks: [{
         type: 'command',
-        command: '.claude/hooks/UserPromptSubmit.sh'
+        command: '"$CLAUDE_PROJECT_DIR"/.claude/hooks/UserPromptSubmit.sh'
       }]
     });
   }
@@ -348,7 +349,7 @@ function updateClaudeSettings(settingsPath: string, _hooksDir: string): void {
     settings.hooks.Stop.push({
       hooks: [{
         type: 'command',
-        command: '.claude/hooks/Stop.sh'
+        command: '"$CLAUDE_PROJECT_DIR"/.claude/hooks/Stop.sh'
       }]
     });
   }

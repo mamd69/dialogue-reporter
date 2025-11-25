@@ -63,6 +63,7 @@ describe('CLI Hook Configuration', () => {
     };
 
     // Add hooks with nested structure per Claude Code docs
+    // Use $CLAUDE_PROJECT_DIR for reliable path resolution
     if (!settings.hooks.SessionStart) {
       settings.hooks.SessionStart = [];
     }
@@ -71,7 +72,7 @@ describe('CLI Hook Configuration', () => {
         hooks: [
           {
             type: 'command',
-            command: '.claude/hooks/SessionStart.sh',
+            command: '"$CLAUDE_PROJECT_DIR"/.claude/hooks/SessionStart.sh',
           },
         ],
       });
@@ -85,7 +86,7 @@ describe('CLI Hook Configuration', () => {
         hooks: [
           {
             type: 'command',
-            command: '.claude/hooks/UserPromptSubmit.sh',
+            command: '"$CLAUDE_PROJECT_DIR"/.claude/hooks/UserPromptSubmit.sh',
           },
         ],
       });
@@ -99,7 +100,7 @@ describe('CLI Hook Configuration', () => {
         hooks: [
           {
             type: 'command',
-            command: '.claude/hooks/Stop.sh',
+            command: '"$CLAUDE_PROJECT_DIR"/.claude/hooks/Stop.sh',
           },
         ],
       });
@@ -206,12 +207,12 @@ describe('CLI Hook Configuration', () => {
   });
 
   describe('correct structure per Claude Code docs', () => {
-    it('should match documented hook structure', () => {
+    it('should match documented hook structure with $CLAUDE_PROJECT_DIR', () => {
       // Per https://code.claude.com/docs/en/hooks
       // The correct structure for events without matchers is:
       // "hooks": {
       //   "SessionStart": [
-      //     { "hooks": [{ "type": "command", "command": "..." }] }
+      //     { "hooks": [{ "type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/..." }] }
       //   ]
       // }
 
@@ -222,7 +223,7 @@ describe('CLI Hook Configuration', () => {
               hooks: [
                 {
                   type: 'command',
-                  command: '.claude/hooks/SessionStart.sh',
+                  command: '"$CLAUDE_PROJECT_DIR"/.claude/hooks/SessionStart.sh',
                 },
               ],
             },
@@ -233,7 +234,7 @@ describe('CLI Hook Configuration', () => {
       // Verify this is valid JSON and has the expected nested shape
       expect(correctStructure.hooks.SessionStart[0].hooks).toBeDefined();
       expect(correctStructure.hooks.SessionStart[0].hooks[0].type).toBe('command');
-      expect(correctStructure.hooks.SessionStart[0].hooks[0].command).toBeDefined();
+      expect(correctStructure.hooks.SessionStart[0].hooks[0].command).toContain('$CLAUDE_PROJECT_DIR');
     });
 
     it('should use type "command" not "script"', () => {
@@ -255,6 +256,18 @@ describe('CLI Hook Configuration', () => {
         ...settings.hooks.Stop,
       ].every((h: any) => h.hooks?.every((hook: any) => hook.type !== 'script'));
       expect(allHooksValid).toBe(true);
+    });
+
+    it('should use $CLAUDE_PROJECT_DIR for reliable path resolution', () => {
+      // Per Claude Code docs, use $CLAUDE_PROJECT_DIR for scripts
+      updateClaudeSettings(settingsPath);
+
+      const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
+
+      // All hook commands should use $CLAUDE_PROJECT_DIR
+      expect(settings.hooks.SessionStart[0].hooks[0].command).toContain('$CLAUDE_PROJECT_DIR');
+      expect(settings.hooks.UserPromptSubmit[0].hooks[0].command).toContain('$CLAUDE_PROJECT_DIR');
+      expect(settings.hooks.Stop[0].hooks[0].command).toContain('$CLAUDE_PROJECT_DIR');
     });
   });
 });

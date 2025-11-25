@@ -47,25 +47,26 @@ echo "Registering hooks in settings.json..."
 # Process each hook type with jq
 # Per Claude Code docs, hooks use nested structure:
 # "EventName": [{ "hooks": [{ "type": "command", "command": "..." }] }]
+# Use $CLAUDE_PROJECT_DIR for reliable path resolution
 # https://code.claude.com/docs/en/hooks
 
-# For SessionStart - nested hooks structure
+# For SessionStart - nested hooks structure with $CLAUDE_PROJECT_DIR
 jq '.hooks = (.hooks // {}) |
   .hooks.SessionStart = (
-    [{"hooks": [{"type": "command", "command": ".claude/hooks/SessionStart.sh"}]}] +
-    ((.hooks.SessionStart // []) | map(select(.hooks[0].command != ".claude/hooks/SessionStart.sh")))
+    [{"hooks": [{"type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/SessionStart.sh"}]}] +
+    ((.hooks.SessionStart // []) | map(select(.hooks[0].command | contains("SessionStart.sh") | not)))
   )' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
 
 # For UserPromptSubmit
 jq '.hooks.UserPromptSubmit = (
-    [{"hooks": [{"type": "command", "command": ".claude/hooks/UserPromptSubmit.sh"}]}] +
-    ((.hooks.UserPromptSubmit // []) | map(select(.hooks[0].command != ".claude/hooks/UserPromptSubmit.sh")))
+    [{"hooks": [{"type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/UserPromptSubmit.sh"}]}] +
+    ((.hooks.UserPromptSubmit // []) | map(select(.hooks[0].command | contains("UserPromptSubmit.sh") | not)))
   )' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
 
 # For Stop
 jq '.hooks.Stop = (
-    [{"hooks": [{"type": "command", "command": ".claude/hooks/Stop.sh"}]}] +
-    ((.hooks.Stop // []) | map(select(.hooks[0].command != ".claude/hooks/Stop.sh")))
+    [{"hooks": [{"type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/Stop.sh"}]}] +
+    ((.hooks.Stop // []) | map(select(.hooks[0].command | contains("Stop.sh") | not)))
   )' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
 
 echo "✅ SessionStart hook registered"
